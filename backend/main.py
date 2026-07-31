@@ -1,25 +1,40 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+from routers import auth, analytics
+
+# Load environment variables from .env file if present
+load_dotenv()
 
 app = FastAPI(
     title="Preppr API",
-    description="Backend for Preppr - AI-Powered Voice Interview Platform",
+    description="Backend for Preppr - AI-Powered Real-Time Voice Interview Trainer & Analytics Platform",
     version="0.1.0"
 )
 
-# Configure CORS so the frontend can talk to the backend
+# Configure CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins, we can restrict this later
+    allow_origins=["*"],  # Adjust in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to the Preppr API!"}
+# Include Routers
+app.include_router(auth.router)
+app.include_router(analytics.router)
 
-@app.get("/health")
+@app.get("/", tags=["General"])
+async def root():
+    return {
+        "name": "Preppr API",
+        "status": "running",
+        "version": "0.1.0"
+    }
+
+@app.get("/health", tags=["General"])
 async def health_check():
     return {"status": "ok"}

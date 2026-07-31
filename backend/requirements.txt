@@ -2,3 +2,13 @@ fastapi
 uvicorn
 pydantic
 python-dotenv
+livekit-api
+livekit-agents
+livekit-plugins-deepgram
+livekit-plugins-openai
+livekit-plugins-cartesia
+livekit-plugins-silero
+httpx
+joblib
+scikit-learn
+numpy
