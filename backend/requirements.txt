@@ -12,3 +12,6 @@ httpx
 joblib
 scikit-learn
 numpy
+sqlalchemy>=2.0.0
+asyncpg
+aiosqlite
