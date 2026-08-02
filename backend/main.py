@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from routers import auth, analytics, resumes
+from routers import auth, analytics, resumes, dashboard
 
 # Load environment variables from .env file if present
 load_dotenv()
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(analytics.router)
 app.include_router(resumes.router)
+app.include_router(dashboard.router)
 
 @app.get("/", tags=["General"])
 async def root():
