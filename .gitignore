@@ -224,3 +224,5 @@ __marimo__/
 **/.next/
 **/dist/
 **/build/
+
+backend/reports/
