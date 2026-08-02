@@ -1,8 +1,11 @@
 import os
+import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
+from core.container import container
 from middleware.error_handler import (
     PrepprException,
     preppr_exception_handler,
@@ -13,10 +16,27 @@ from routers import auth, analytics, resumes, dashboard
 # Load environment variables from .env file if present
 load_dotenv()
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("preppr-main")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI Lifespan Context Manager handling application startup and shutdown lifecycle.
+    """
+    logger.info("Initializing Preppr API platform services...")
+    container.initialize()
+    yield
+    logger.info("Shutting down Preppr API platform services...")
+    container.shutdown()
+
+
 app = FastAPI(
     title="Preppr API",
     description="Backend for Preppr - AI-Powered Real-Time Voice Interview Trainer & Analytics Platform",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Custom Request Logging & Processing Latency Middleware
@@ -40,6 +60,7 @@ app.include_router(analytics.router)
 app.include_router(resumes.router)
 app.include_router(dashboard.router)
 
+
 @app.get("/", tags=["General"])
 async def root():
     return {
@@ -48,6 +69,10 @@ async def root():
         "version": "0.1.0"
     }
 
+
 @app.get("/health", tags=["General"])
 async def health_check():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "container_initialized": container._is_initialized
+    }
