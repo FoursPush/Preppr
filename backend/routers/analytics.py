@@ -1,9 +1,9 @@
 import os
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import numpy as np
 import joblib
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, BackgroundTasks, status
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics & Evaluation"])
@@ -63,6 +63,23 @@ class SessionEvaluationRequest(BaseModel):
     transcript_metrics: TranscriptMetrics
 
 
+class SessionCompletionRequest(BaseModel):
+    session_id: str = Field(..., example="sess_982347")
+    raw_audio_metadata: Dict[str, Any] = Field(
+        ...,
+        example={
+            "total_words": 420,
+            "duration_seconds": 180.0,
+            "total_filler_words": 5,
+            "longest_silence": 2.4,
+            "acoustic_stress_score": 0.22,
+            "star_structure_score": 8.0,
+            "technical_correctness_score": 8.5
+        },
+        description="Raw telemetry collected during interview"
+    )
+
+
 # --- Response Schemas ---
 
 class CompetencyScores(BaseModel):
@@ -82,7 +99,13 @@ class EvaluationResponse(BaseModel):
     model_version: str = Field(..., description="Indicates if loaded from ML joblib model or analytical heuristic fallback")
 
 
-# --- Endpoint ---
+class AsyncCompletionResponse(BaseModel):
+    session_id: str
+    status: str
+    message: str
+
+
+# --- Endpoints ---
 
 @router.post(
     "/evaluate-session",
@@ -99,8 +122,6 @@ async def evaluate_session(payload: SessionEvaluationRequest):
         transcript = payload.transcript_metrics
 
         if model is not None:
-            # --- Inference via Trained ML Model ---
-            # Construct feature vector expected by trained ML model
             feature_vector = np.array([[
                 audio.wpm,
                 audio.longest_silence_seconds,
@@ -110,12 +131,10 @@ async def evaluate_session(payload: SessionEvaluationRequest):
                 transcript.technical_correctness_score
             ]])
 
-            # Expected model prediction interface (supports standard scikit-learn / joblib pipelines)
             prediction = model.predict(feature_vector)[0]
             overall_score = float(np.clip(prediction, 0.0, 100.0))
             model_ver = getattr(model, "version", "joblib-v1.0")
 
-            # Default competency vector from model output or derived features
             competency = CompetencyScores(
                 communication=round(float(transcript.star_structure_score * 10), 1),
                 technical=round(float(transcript.technical_correctness_score * 10), 1),
@@ -123,7 +142,6 @@ async def evaluate_session(payload: SessionEvaluationRequest):
                 pacing=round(float(max(0, 100 - abs(audio.wpm - 140) * 1.5)), 1)
             )
         else:
-            # --- Fallback Analytical Engine (Until ML team places model file) ---
             model_ver = "heuristic-engine-v0.1 (Place model at backend/models/session_evaluator.joblib)"
 
             pacing_score = max(0.0, min(100.0, 100 - abs(audio.wpm - 140) * 1.5 - audio.filler_words_count * 3))
@@ -142,7 +160,6 @@ async def evaluate_session(payload: SessionEvaluationRequest):
                 pacing=round(pacing_score, 1)
             )
 
-        # Generate qualitative strengths & improvement insights
         strengths = []
         improvements = []
         recommendations = []
@@ -185,3 +202,35 @@ async def evaluate_session(payload: SessionEvaluationRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process session evaluation analytics: {str(e)}"
         )
+
+
+@router.post(
+    "/complete-session",
+    response_model=AsyncCompletionResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Complete Interview Session Non-Blocking",
+    description="Enqueues post-interview analytics processing as a non-blocking background task via FastAPI BackgroundTasks."
+)
+async def complete_session_async(
+    payload: SessionCompletionRequest,
+    background_tasks: BackgroundTasks
+):
+    """
+    Triggers BackgroundAnalyticsProcessor in the background without blocking HTTP response.
+    """
+    from workers.analytics_worker import BackgroundAnalyticsProcessor
+
+    processor = BackgroundAnalyticsProcessor()
+
+    # Enqueue post-interview processing pipeline into FastAPI BackgroundTasks
+    background_tasks.add_task(
+        processor.process_post_interview_metrics,
+        session_id=payload.session_id,
+        raw_audio_metadata=payload.raw_audio_metadata
+    )
+
+    return AsyncCompletionResponse(
+        session_id=payload.session_id,
+        status="queued",
+        message=f"Post-interview background processing enqueued for session '{payload.session_id}'."
+    )
