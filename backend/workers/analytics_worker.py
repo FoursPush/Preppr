@@ -8,6 +8,7 @@ from routers.analytics import (
     SessionEvaluationRequest,
     evaluate_session,
 )
+from services.pdf_service import PDFReportGenerator
 
 logger = logging.getLogger("preppr-analytics-worker")
 
@@ -26,6 +27,7 @@ class BackgroundAnalyticsProcessor:
         2) Run feature engineering (WPM, filler word calculations, silence)
         3) Invoke ML ModelManager to get score metrics
         4) Commit final AnalyticsSummary row to database
+        5) Generate PDF Performance Report artifact
         """
         logger.info(f"[BackgroundAnalyticsProcessor] Starting background processing for session '{session_id}'...")
 
@@ -58,17 +60,19 @@ class BackgroundAnalyticsProcessor:
                     f"WPM={average_wpm}, Fillers={total_filler_words}, Silence={longest_silence}s"
                 )
 
+                audio_metrics_obj = AudioMetrics(
+                    wpm=average_wpm,
+                    longest_silence_seconds=longest_silence,
+                    filler_words_count=total_filler_words,
+                    acoustic_stress_score=acoustic_stress,
+                )
+
                 # Step 3: Invoke ML ModelManager / Evaluation Engine
                 req = SessionEvaluationRequest(
                     session_id=session_id,
                     candidate_id=raw_audio_metadata.get("candidate_id", "cand_default"),
                     company_target=raw_audio_metadata.get("company_target", "Amazon"),
-                    audio_metrics=AudioMetrics(
-                        wpm=average_wpm,
-                        longest_silence_seconds=longest_silence,
-                        filler_words_count=total_filler_words,
-                        acoustic_stress_score=acoustic_stress,
-                    ),
+                    audio_metrics=audio_metrics_obj,
                     transcript_metrics=TranscriptMetrics(
                         turns=[],
                         star_structure_score=star_score,
@@ -99,6 +103,23 @@ class BackgroundAnalyticsProcessor:
                     logger.info(
                         f"No persistent DB record found for session ID '{session_id}'; skipping DB commit (mock environment)."
                     )
+
+                # Step 5: Final Lifecycle Stage - PDF Report Generation
+                pdf_generator = PDFReportGenerator()
+
+                # Build combined analytics payload including audio telemetry
+                report_data = evaluation_result.model_dump()
+                report_data["audio_metrics"] = audio_metrics_obj.model_dump()
+
+                report_filepath = await pdf_generator.generate_session_report(
+                    session_id=session_id,
+                    analytics_data=report_data
+                )
+
+                logger.info(
+                    f"[BackgroundAnalyticsProcessor] Final lifecycle stage completed successfully! "
+                    f"PDF report generated at: '{report_filepath}'"
+                )
 
         except Exception as e:
             logger.error(
