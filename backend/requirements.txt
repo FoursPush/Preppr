@@ -16,3 +16,5 @@ sqlalchemy>=2.0.0
 asyncpg
 aiosqlite
 python-multipart
+scipy
+librosa
