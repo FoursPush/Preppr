@@ -6,6 +6,15 @@ from pipelines.resume_pipeline import (
     VectorEmbeddingStage,
     ResumePipeline,
 )
+from pipelines.voice_pipeline import (
+    VoicePipeline,
+    STTStage,
+    LLMStage,
+    TTSStage,
+    AudioTelemetryStage,
+    VoiceTurnResult,
+    VoiceSessionContext,
+)
 
 __all__ = [
     "PipelineStage",
@@ -14,4 +23,12 @@ __all__ = [
     "TextChunkingStage",
     "VectorEmbeddingStage",
     "ResumePipeline",
+    "VoicePipeline",
+    "STTStage",
+    "LLMStage",
+    "TTSStage",
+    "AudioTelemetryStage",
+    "VoiceTurnResult",
+    "VoiceSessionContext",
 ]
+

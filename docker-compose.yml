@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: preppr-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: preppr
+      POSTGRES_USER: preppr_user
+      POSTGRES_PASSWORD: preppr_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: preppr-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://preppr_user:preppr_password@postgres:5432/preppr
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

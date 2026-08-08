@@ -1,0 +1,2 @@
+preppr
+deepgram secret key : f78641f74accc11b788a653749c06f1a9dc7b035

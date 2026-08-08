@@ -18,3 +18,5 @@ aiosqlite
 python-multipart
 scipy
 librosa
+pymupdf
+reportlab
