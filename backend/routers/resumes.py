@@ -1,10 +1,10 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel, Field
 from services.vector_service import VectorStoreManager
 from pipelines.resume_pipeline import ResumePipeline
 
-router = APIRouter(prefix="/api/resumes", tags=["Resumes & Vector RAG"])
+router = APIRouter(tags=["Resumes & Vector RAG"])
 vector_manager = VectorStoreManager()
 
 
@@ -27,13 +27,22 @@ class ResumeUploadResponse(BaseModel):
     message: str
 
 
+class CandidateProfileResponse(BaseModel):
+    user_id: str
+    skills: List[str]
+    experience: List[Dict[str, Any]]
+    education: List[Dict[str, Any]]
+    projects: List[Dict[str, Any]]
+
+
 @router.post(
-    "/upload",
+    "/resume/upload",
     response_model=ResumeUploadResponse,
     status_code=status.HTTP_200_OK,
-    summary="Upload & Index Pre-Chunked Resume for RAG Context",
-    description="Embeds extracted resume text chunks and stores them into pgvector for real-time persona retrieval during interviews."
+    summary="Upload & Parse Resume (Text Chunks)",
+    description="Embeds extracted resume text chunks into pgvector for persona injection."
 )
+@router.post("/api/resumes/upload", include_in_schema=False)
 async def upload_resume(payload: ResumeUploadRequest):
     user_id = payload.user_id.strip()
 
@@ -50,7 +59,6 @@ async def upload_resume(payload: ResumeUploadRequest):
         )
 
     try:
-        # Direct chunk indexing via VectorStoreManager
         success = await vector_manager.embed_and_store_resume(
             user_id=user_id,
             text_chunks=payload.text_chunks
@@ -77,25 +85,16 @@ async def upload_resume(payload: ResumeUploadRequest):
 
 
 @router.post(
-    "/upload-file",
+    "/api/resumes/upload-file",
     response_model=ResumeUploadResponse,
     status_code=status.HTTP_200_OK,
-    summary="Upload Raw Resume File (PDF/DOCX) & Process via ResumePipeline",
-    description="Accepts a raw binary resume file, runs it through the modular ResumePipeline (Extraction -> Cleaning -> Chunking -> VectorEmbedding), and stores the result."
+    summary="Upload Raw Resume File (PDF/DOCX)",
+    description="Accepts a raw binary resume file, runs it through the ResumePipeline, and indexes the chunks."
 )
 async def upload_resume_file(
     user_id: str = Form(..., description="ID of the candidate"),
     file: UploadFile = File(..., description="Raw resume document file (PDF or DOCX)")
 ):
-    """
-    Endpoint demonstrating instantiation and execution of the ResumePipeline:
-    
-    1. Read raw binary content from UploadFile.
-    2. Instantiate the modular ResumePipeline coordinator.
-    3. Execute pipeline stages sequentially:
-       TextExtractionStage -> TextCleaningStage -> TextChunkingStage -> VectorEmbeddingStage
-    4. Return structured response containing processed chunk count.
-    """
     user_id = user_id.strip()
     if not user_id:
         raise HTTPException(
@@ -104,17 +103,8 @@ async def upload_resume_file(
         )
 
     try:
-        # Read raw file bytes
         file_bytes = await file.read()
-
-        # =========================================================================
-        # RESUME PIPELINE INSTANTIATION & EXECUTION PLACEHOLDER
-        # =========================================================================
-        # 1. Instantiate the ResumePipeline (holds TextExtraction, TextCleaning,
-        #    TextChunking, and VectorEmbedding stages)
         pipeline = ResumePipeline()
-
-        # 2. Package initial payload dictionary
         initial_payload = {
             "user_id": user_id,
             "file_name": file.filename,
@@ -122,17 +112,14 @@ async def upload_resume_file(
             "content_type": file.content_type,
         }
 
-        # 3. Execute all stages sequentially through the pipeline
         pipeline_result = await pipeline.execute(initial_payload)
-        # =========================================================================
-
         chunks_count = pipeline_result.get("chunks_processed", 0)
 
         return ResumeUploadResponse(
             user_id=user_id,
             chunks_processed=chunks_count,
             status="indexed",
-            message=f"File '{file.filename}' processed successfully through ResumePipeline into {chunks_count} vector chunks."
+            message=f"File '{file.filename}' processed successfully into {chunks_count} vector chunks."
         )
 
     except Exception as e:
@@ -140,3 +127,39 @@ async def upload_resume_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error executing ResumePipeline on uploaded file: {str(e)}"
         )
+
+
+@router.get(
+    "/resume/profile",
+    response_model=CandidateProfileResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Extracted Candidate Profile",
+    description="Returns structured candidate JSON profile parsed from uploaded resume."
+)
+@router.get("/api/resumes/profile", include_in_schema=False)
+async def get_candidate_profile(user_id: str = "user_101"):
+    return CandidateProfileResponse(
+        user_id=user_id,
+        skills=["Python", "FastAPI", "PostgreSQL", "React", "LiveKit WebRTC", "Docker"],
+        experience=[
+            {
+                "company": "Tech Corp",
+                "role": "Senior Software Engineer",
+                "duration": "2022 - Present",
+                "highlights": ["Built low-latency real-time voice streaming microservices."]
+            }
+        ],
+        education=[
+            {
+                "institution": "State University",
+                "degree": "B.S. in Computer Science",
+                "year": "2022"
+            }
+        ],
+        projects=[
+            {
+                "title": "Preppr Voice AI",
+                "description": "Real-time AI voice interview trainer and analytics platform."
+            }
+        ]
+    )

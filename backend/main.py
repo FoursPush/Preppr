@@ -11,7 +11,16 @@ from middleware.error_handler import (
     preppr_exception_handler,
     RequestLoggingMiddleware,
 )
-from routers import auth, analytics, resumes, dashboard
+from routers import (
+    auth,
+    resumes,
+    companies,
+    roles,
+    interviews,
+    reports,
+    analytics,
+    dashboard,
+)
 
 # Load environment variables from .env file if present
 load_dotenv()
@@ -34,8 +43,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Preppr API",
-    description="Backend for Preppr - AI-Powered Real-Time Voice Interview Trainer & Analytics Platform",
-    version="0.1.0",
+    description="Backend for Preppr - AI-Powered Real-Time Voice & Text Interview Trainer & Analytics Platform",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -54,10 +63,14 @@ app.add_middleware(
 # Global Preppr Exception Handler
 app.add_exception_handler(PrepprException, preppr_exception_handler)
 
-# Include Routers
+# Include Routers matching plan.md specification
 app.include_router(auth.router)
-app.include_router(analytics.router)
 app.include_router(resumes.router)
+app.include_router(companies.router)
+app.include_router(roles.router)
+app.include_router(interviews.router)
+app.include_router(reports.router)
+app.include_router(analytics.router)
 app.include_router(dashboard.router)
 
 
@@ -66,7 +79,7 @@ async def root():
     return {
         "name": "Preppr API",
         "status": "running",
-        "version": "0.1.0"
+        "version": "0.2.0"
     }
 
 

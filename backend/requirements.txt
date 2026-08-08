@@ -17,13 +17,5 @@ aiosqlite
 python-multipart
 scipy
 librosa
-faster-whisper
-kokoro>=0.9.4
-loguru
-regex
-safetensors
-misaki[en]
-num2words
-soundfile
-sentence-transformers
-torch
+pymupdf
+reportlab
