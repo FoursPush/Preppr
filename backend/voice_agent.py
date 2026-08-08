@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from dotenv import load_dotenv
 
 # Load environment variables from .env immediately before importing LiveKit
@@ -69,11 +70,6 @@ async def entrypoint(ctx: JobContext):
     # 5. Start agent session in connected LiveKit WebRTC room
     session = agent.start(ctx.room)
 
-    # Initial greeting to start the interview session
-    await session.say(
-        "Hello! I am Preppr, your AI technical interviewer today. Are you ready to get started?",
-        allow_interruptions=True,
-    )
 
     # 6. Session completion callback to trigger post-interview analytics worker
     async def cleanup_analytics():

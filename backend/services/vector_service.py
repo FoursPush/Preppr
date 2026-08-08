@@ -10,9 +10,22 @@ class VectorStoreManager:
     and performing similarity vector searches using PostgreSQL pgvector.
     """
 
-    def __init__(self, embedding_model: str = "text-embedding-3-small"):
-        self.embedding_model = embedding_model
-        logger.info(f"Initialized VectorStoreManager with model: {self.embedding_model}")
+    def __init__(self, model_name: str = None):
+        self.model_name = model_name or settings.EMBEDDING_MODEL
+        self.dimension = settings.EMBEDDING_DIMENSION
+        self._model = None
+        logger.info(f"Initialized VectorStoreManager (Model: {self.model_name}, Dim: {self.dimension})")
+
+    def _get_model(self):
+        if self._model is None:
+            try:
+                from sentence_transformers import SentenceTransformer
+                logger.info(f"Loading local SentenceTransformer model '{self.model_name}'...")
+                self._model = SentenceTransformer(self.model_name)
+            except Exception as e:
+                logger.warning(f"SentenceTransformer lazy load warning: {e}")
+                self._model = None
+        return self._model
 
     async def embed_and_store_resume(
         self, user_id: str, text_chunks: List[str]
