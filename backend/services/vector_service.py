@@ -1,6 +1,8 @@
 import logging
 from typing import List, Dict, Any, Optional
 
+from core.config import settings
+
 logger = logging.getLogger("preppr-vector-service")
 
 
