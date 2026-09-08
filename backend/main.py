@@ -55,7 +55,7 @@ app.add_middleware(RequestLoggingMiddleware)
 # Configure CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=["http://localhost:3000", "*"],  # Explicitly allow Next.js dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

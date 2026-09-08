@@ -1,52 +1,83 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { uploadResumeChunks, getCandidateProfile } from "@/lib/api";
-import { FileText, Upload, CheckCircle2, Cpu, Code, Briefcase, GraduationCap, Sparkles } from "lucide-react";
+import { useState, useRef } from "react";
+import { uploadPdfResume, CandidateProfile } from "@/lib/api";
+import {
+  FileText,
+  Upload,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+  Sparkles,
+  Code,
+  Briefcase,
+  User,
+  Mail,
+  Phone,
+  HelpCircle,
+  FileUp,
+} from "lucide-react";
 
 export default function ResumePage() {
-  const [userId, setUserId] = useState("user_101");
-  const [resumeText, setResumeText] = useState(
-    "Senior Software Engineer with 5+ years of experience building distributed microservices using Python, FastAPI, React, and PostgreSQL. Architected low-latency streaming platforms using LiveKit WebRTC and Redis."
-  );
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [statusMsg, setStatusMsg] = useState("");
-  const [profile, setProfile] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [profile, setProfile] = useState<CandidateProfile | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const savedId = localStorage.getItem("preppr_user_id") || "user_101";
-    setUserId(savedId);
-    fetchProfile(savedId);
-  }, []);
+  const handleFileChange = (file: File | undefined) => {
+    if (!file) return;
 
-  async function fetchProfile(id: string) {
-    try {
-      const data = await getCandidateProfile(id);
-      setProfile(data);
-    } catch (err) {
-      console.error("Error fetching profile:", err);
+    if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
+      setErrorMsg("Only PDF files (.pdf) are supported.");
+      setSelectedFile(null);
+      return;
     }
-  }
 
-  const handleUpload = async (e: React.FormEvent) => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setSelectedFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileChange(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedFile) {
+      setErrorMsg("Please select a PDF resume file to upload.");
+      return;
+    }
+
     setUploading(true);
-    setStatusMsg("");
+    setErrorMsg(null);
+    setSuccessMsg(null);
 
     try {
-      // Split raw resume text into semantic paragraph chunks
-      const chunks = resumeText
-        .split("\n\n")
-        .map((c) => c.trim())
-        .filter((c) => c.length > 10);
-
-      const payloadChunks = chunks.length > 0 ? chunks : [resumeText];
-
-      const res = await uploadResumeChunks(userId, payloadChunks);
-      setStatusMsg(`Successfully embedded ${res.chunks_processed} chunks into pgvector!`);
-      fetchProfile(userId);
+      const extractedProfile = await uploadPdfResume(selectedFile);
+      setProfile(extractedProfile);
+      setSuccessMsg(`Successfully parsed resume for ${extractedProfile.candidate_name || "Candidate"} via Ollama!`);
     } catch (err: any) {
-      setStatusMsg("Error indexing resume chunks.");
+      console.error("Resume Extraction Error:", err);
+      setErrorMsg(err.message || "An unexpected error occurred while parsing the resume.");
     } finally {
       setUploading(false);
     }
@@ -54,107 +85,229 @@ export default function ResumePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-          <FileText className="w-8 h-8 text-cyan-400" /> Resume & Persona RAG Processing
+          <FileText className="w-8 h-8 text-cyan-400" /> PDF Resume Extraction & RAG Pipeline
         </h1>
         <p className="text-gray-400 text-sm mt-1">
-          Upload your resume to extract skills and store vector embeddings in pgvector for personalized mock interview questions.
+          Upload your PDF resume to extract structured profile information and candidate interview questions via PyMuPDF and local Ollama.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column: Upload Form */}
-        <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
-          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Upload className="w-5 h-5 text-brand-400" /> Upload & Index Resume Content
-          </h2>
+        {/* Left Column: PDF Upload Area */}
+        <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl flex flex-col justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-brand-400" /> Select or Drop Resume PDF
+            </h2>
 
-          <form onSubmit={handleUpload} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-2">
-                Paste Resume Text Content
-              </label>
-              <textarea
-                rows={8}
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                className="w-full bg-dark-800 border border-white/10 rounded-xl p-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 text-xs font-mono leading-relaxed"
-                placeholder="Paste work experience, projects, and technical skills..."
-              />
-            </div>
+            <form onSubmit={handleUploadSubmit} className="space-y-4">
+              {/* Drag and Drop Zone */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                  isDragOver
+                    ? "border-brand-500 bg-brand-500/10"
+                    : selectedFile
+                    ? "border-emerald-500/50 bg-emerald-500/5"
+                    : "border-white/20 bg-dark-800/40 hover:border-white/40"
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={(e) => handleFileChange(e.target.files?.[0])}
+                  className="hidden"
+                />
 
-            {statusMsg && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" /> {statusMsg}
+                <FileUp className="w-12 h-12 mx-auto mb-3 text-brand-400" />
+
+                {selectedFile ? (
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-400">{selectedFile.name}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {(selectedFile.size / 1024).toFixed(1)} KB • Ready to extract
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium text-gray-200">
+                      Drag & drop your PDF resume here, or <span className="text-brand-400 underline">browse</span>
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Supports PDF documents (.pdf)</p>
+                  </div>
+                )}
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={uploading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-500 hover:to-cyan-500 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
-            >
-              {uploading ? "Chunking & Embedding..." : <><Sparkles className="w-4 h-4" /> Index into pgvector RAG</>}
-            </button>
-          </form>
+              {/* Error Alert */}
+              {errorMsg && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">Extraction Error</span>
+                    <span>{errorMsg}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Success Alert */}
+              {successMsg && (
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">Success</span>
+                    <span>{successMsg}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Button with Loading State */}
+              <button
+                type="submit"
+                disabled={uploading || !selectedFile}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-500 hover:to-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                    PyMuPDF & Ollama Extracting...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" /> Extract Candidate Profile
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          <div className="mt-6 p-4 rounded-xl bg-white/5 text-xs text-gray-400 border border-white/5">
+            <span className="font-semibold text-gray-300 block mb-1">How it works:</span>
+            1. PyMuPDF extracts raw text from PDF document pages.<br />
+            2. Local Ollama (qwen2.5:7b) parses candidate profile and generates tailored interview questions in JSON format.
+          </div>
         </div>
 
-        {/* Right Column: Parsed Candidate JSON Profile */}
+        {/* Right Column: Candidate Profile Display */}
         <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
           <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-amber-400" /> Extracted Candidate Profile JSON
+            <User className="w-5 h-5 text-amber-400" /> Extracted Candidate Details
           </h2>
 
-          {profile ? (
+          {uploading ? (
+            <div className="py-20 text-center space-y-4">
+              <Loader2 className="w-10 h-10 animate-spin text-brand-400 mx-auto" />
+              <p className="text-sm font-semibold text-white">Analyzing Resume with Local Ollama Model...</p>
+              <p className="text-xs text-gray-400">Extracting skills, past experience, and suggested interview questions.</p>
+            </div>
+          ) : profile ? (
             <div className="space-y-6 text-sm">
-              {/* Skills */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <Code className="w-4 h-4 text-brand-400" /> Detected Technical Skills
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {profile.skills?.map((skill: string, i: number) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1 rounded-lg bg-brand-500/10 border border-brand-500/30 text-brand-300 text-xs font-medium"
-                    >
-                      {skill}
+              {/* Candidate Info Header */}
+              <div className="p-4 rounded-xl bg-dark-800/80 border border-white/10 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">
+                      {profile.candidate_name || "Name Not Specified"}
+                    </h3>
+                    {profile.experience_years !== null && profile.experience_years !== undefined && (
+                      <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
+                        {profile.experience_years} Years Experience
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-wrap gap-4 text-xs text-gray-300 border-t border-white/5">
+                  {profile.email && (
+                    <span className="flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-brand-400" /> {profile.email}
                     </span>
-                  ))}
+                  )}
+                  {profile.phone && (
+                    <span className="flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-emerald-400" /> {profile.phone}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Work Experience */}
+              {/* Technical Skills */}
               <div>
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <Briefcase className="w-4 h-4 text-cyan-400" /> Experience Highlights
+                  <Code className="w-4 h-4 text-brand-400" /> Technical & Core Skills
                 </h3>
-                {profile.experience?.map((exp: any, i: number) => (
-                  <div key={i} className="p-3 rounded-lg bg-dark-800/60 border border-white/5">
-                    <div className="flex justify-between text-xs font-bold text-white mb-1">
-                      <span>{exp.role}</span>
-                      <span className="text-gray-400">{exp.company}</span>
-                    </div>
-                    <p className="text-xs text-gray-400">{exp.highlights?.[0]}</p>
+                {profile.skills && profile.skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.skills.map((skill, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 rounded-lg bg-brand-500/10 border border-brand-500/30 text-brand-300 text-xs font-medium"
+                      >
+                        {skill}
+                      </span>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="text-xs text-gray-500">No skills explicitly extracted.</p>
+                )}
               </div>
 
-              {/* Education */}
+              {/* Past Roles */}
               <div>
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <GraduationCap className="w-4 h-4 text-emerald-400" /> Education
+                  <Briefcase className="w-4 h-4 text-cyan-400" /> Previous Roles & Experience
                 </h3>
-                {profile.education?.map((edu: any, i: number) => (
-                  <div key={i} className="text-xs text-gray-300">
-                    <span className="font-semibold text-white">{edu.degree}</span> – {edu.institution} ({edu.year})
+                {profile.past_roles && profile.past_roles.length > 0 ? (
+                  <div className="space-y-2">
+                    {profile.past_roles.map((role, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-dark-800/60 border border-white/5 text-xs text-gray-200">
+                        {typeof role === "string" ? role : role.role || role.title || JSON.stringify(role)}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="text-xs text-gray-500">No previous roles extracted.</p>
+                )}
+              </div>
+
+              {/* Suggested Interview Questions */}
+              <div>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                  <HelpCircle className="w-4 h-4 text-emerald-400" /> Suggested Interview Questions
+                </h3>
+                {profile.suggested_interview_questions && profile.suggested_interview_questions.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {profile.suggested_interview_questions.map((question, i) => (
+                      <div
+                        key={i}
+                        className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-xs text-gray-200 flex items-start gap-2.5"
+                      >
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-bold shrink-0">
+                          Q{i + 1}
+                        </span>
+                        <p className="leading-relaxed">{question}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500">No questions generated yet.</p>
+                )}
               </div>
             </div>
           ) : (
-            <p className="text-gray-400 text-xs">No profile parsed yet. Submit resume text above.</p>
+            <div className="py-20 text-center space-y-2">
+              <FileUp className="w-12 h-12 text-gray-600 mx-auto" />
+              <p className="text-sm font-medium text-gray-300">No Resume Uploaded</p>
+              <p className="text-xs text-gray-500">
+                Upload a PDF resume on the left to extract candidate skills and suggested interview questions.
+              </p>
+            </div>
           )}
         </div>
       </div>

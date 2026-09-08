@@ -3,6 +3,9 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel, Field
 from services.vector_service import VectorStoreManager
 from pipelines.resume_pipeline import ResumePipeline
+import fitz
+import httpx
+import json
 
 router = APIRouter(tags=["Resumes & Vector RAG"])
 vector_manager = VectorStoreManager()
@@ -163,3 +166,92 @@ async def get_candidate_profile(user_id: str = "user_101"):
             }
         ]
     )
+
+
+@router.post(
+    "/api/v1/resume/upload",
+    status_code=status.HTTP_200_OK,
+    summary="Upload & Parse Resume via Ollama"
+)
+async def extract_resume_pdf(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    
+    try:
+        file_bytes = await file.read()
+        
+        # Extract text using PyMuPDF (fitz)
+        text = ""
+        with fitz.open(stream=file_bytes, filetype="pdf") as doc:
+            for page in doc:
+                text += page.get_text()
+                
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="No text could be extracted from the PDF.")
+            
+        prompt = f"""You are an expert ATS resume parsing system. Analyze the candidate resume text below and extract structured information into a JSON object.
+
+CRITICAL INSTRUCTIONS:
+1. "candidate_name": String. Full name.
+2. "email": String.
+3. "phone": String.
+4. "experience_years": Integer.
+5. "skills_list": Array of strings. Only list single-word or short technical skills (e.g. "Python", "React"). DO NOT include project names or long phrases.
+6. "employment_history": Array of strings. ONLY include formal employment jobs (e.g. "Software Engineer at Company"). If the candidate has no official job history, return an empty array [].
+7. "academic_or_personal_projects": Array of strings. You MUST extract EVERY project listed under the "PROJECTS" section (e.g., "HemiSphere", "RentSphere"). Format as "ProjectName - Description".
+8. "suggested_interview_questions": Array of strings.
+
+Return ONLY a valid JSON object matching this exact structure:
+
+{{
+    "candidate_name": "Full Name",
+    "email": "email@example.com",
+    "phone": "Phone number",
+    "experience_years": 0,
+    "skills_list": ["Skill 1", "Skill 2"],
+    "employment_history": [],
+    "academic_or_personal_projects": ["Project 1 - Description", "Project 2 - Description"],
+    "suggested_interview_questions": ["Question 1"]
+}}
+
+--- RESUME TEXT BEGIN ---
+{text[:6000]}
+--- RESUME TEXT END ---
+"""
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": "qwen2.5:7b",
+                    "prompt": prompt,
+                    "format": "json",
+                    "stream": False
+                },
+                timeout=60.0
+            )
+            response.raise_for_status()
+            result = response.json()
+            raw_profile = json.loads(result.get("response", "{}"))
+            
+            # Map the robust keys back to standard schema for frontend
+            profile = {
+                "candidate_name": raw_profile.get("candidate_name", ""),
+                "email": raw_profile.get("email", ""),
+                "phone": raw_profile.get("phone", ""),
+                "experience_years": raw_profile.get("experience_years", 0),
+                "skills": raw_profile.get("skills_list", raw_profile.get("skills", [])),
+                "past_roles": raw_profile.get("employment_history", raw_profile.get("past_roles", [])),
+                "projects": raw_profile.get("academic_or_personal_projects", raw_profile.get("projects", [])),
+                "suggested_interview_questions": raw_profile.get("suggested_interview_questions", [])
+            }
+            
+        return {
+            "status": "success",
+            "data": profile
+        }
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Failed to parse LLM output as JSON.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
