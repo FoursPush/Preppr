@@ -4,7 +4,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from sqlalchemy import text
 
+from database.config import engine, Base
+import database.models  # Register all ORM models with Base
 from core.container import container
 from middleware.error_handler import (
     PrepprException,
@@ -36,6 +39,34 @@ async def lifespan(app: FastAPI):
     FastAPI Lifespan Context Manager handling application startup and shutdown lifecycle.
     """
     logger.info("Initializing Preppr API platform services...")
+    
+    # 1. Initialize & synchronize PostgreSQL schema
+    try:
+        if "postgresql" in engine.url.drivername:
+            try:
+                async with engine.connect() as conn:
+                    await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                    await conn.commit()
+            except Exception as ext_err:
+                logger.warning(f"Vector extension note: {ext_err}")
+
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            
+            # Ensure users table columns exist for existing databases
+            try:
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(255) DEFAULT 'Software Engineer';"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_level VARCHAR(100);"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(50);"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(1024);"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);"))
+                logger.info("PostgreSQL database tables and columns synchronized.")
+            except Exception as col_err:
+                logger.warning(f"Column synchronization note: {col_err}")
+
+    except Exception as db_init_err:
+        logger.error(f"PostgreSQL initialization failed on startup: {db_init_err}", exc_info=True)
+
     container.initialize()
     yield
     logger.info("Shutting down Preppr API platform services...")

@@ -20,6 +20,18 @@ import {
 
 export default function ResumePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+import { useEffect, useState } from "react";
+import { uploadResumeChunks, getCandidateProfile } from "@/lib/api";
+import { FileText, Upload, CheckCircle2, Cpu, Code, Briefcase, GraduationCap, Sparkles } from "lucide-react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/lib/auth-context";
+
+export default function ResumePage() {
+  const { user } = useAuth();
+  const [userId, setUserId] = useState("user_101");
+  const [resumeText, setResumeText] = useState(
+    "Senior Software Engineer with 5+ years of experience building distributed microservices using Python, FastAPI, React, and PostgreSQL. Architected low-latency streaming platforms using LiveKit WebRTC and Redis."
+  );
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -312,5 +324,6 @@ export default function ResumePage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }
