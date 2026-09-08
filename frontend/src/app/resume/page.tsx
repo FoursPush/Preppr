@@ -16,6 +16,7 @@ import {
   Phone,
   HelpCircle,
   FileUp,
+  Folder,
 } from "lucide-react";
 
 export default function ResumePage() {
@@ -267,12 +268,30 @@ export default function ResumePage() {
                   <div className="space-y-2">
                     {profile.past_roles.map((role, i) => (
                       <div key={i} className="p-3 rounded-lg bg-dark-800/60 border border-white/5 text-xs text-gray-200">
-                        {typeof role === "string" ? role : role.role || role.title || JSON.stringify(role)}
+                        {role}
                       </div>
                     ))}
                   </div>
                 ) : (
                   <p className="text-xs text-gray-500">No previous roles extracted.</p>
+                )}
+              </div>
+
+              {/* Projects */}
+              <div>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                  <Folder className="w-4 h-4 text-purple-400" /> Projects
+                </h3>
+                {profile.projects && profile.projects.length > 0 ? (
+                  <div className="space-y-2">
+                    {profile.projects.map((project, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-dark-800/60 border border-white/5 text-xs text-gray-200">
+                        {project}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500">No projects extracted.</p>
                 )}
               </div>
 
