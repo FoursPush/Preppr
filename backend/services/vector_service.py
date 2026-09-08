@@ -1,3 +1,4 @@
+from core.config import settings
 import logging
 from typing import List, Dict, Any, Optional
 
