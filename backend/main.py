@@ -17,6 +17,7 @@ from middleware.error_handler import (
 from routers import (
     auth,
     resumes,
+    resume,
     companies,
     roles,
     interviews,
@@ -85,7 +86,7 @@ app.add_middleware(RequestLoggingMiddleware)
 # Configure CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=["http://localhost:3000", "*"],  # Explicitly allow Next.js dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -94,9 +95,10 @@ app.add_middleware(
 # Global Preppr Exception Handler
 app.add_exception_handler(PrepprException, preppr_exception_handler)
 
-# Include Routers matching plan.md specification
+# Include Routers
 app.include_router(auth.router)
 app.include_router(resumes.router)
+app.include_router(resume.router)
 app.include_router(companies.router)
 app.include_router(roles.router)
 app.include_router(interviews.router)
