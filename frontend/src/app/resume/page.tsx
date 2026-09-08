@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { uploadResumeChunks, getCandidateProfile } from "@/lib/api";
 import { FileText, Upload, CheckCircle2, Cpu, Code, Briefcase, GraduationCap, Sparkles } from "lucide-react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/lib/auth-context";
 
 export default function ResumePage() {
+  const { user } = useAuth();
   const [userId, setUserId] = useState("user_101");
   const [resumeText, setResumeText] = useState(
     "Senior Software Engineer with 5+ years of experience building distributed microservices using Python, FastAPI, React, and PostgreSQL. Architected low-latency streaming platforms using LiveKit WebRTC and Redis."
@@ -14,10 +17,10 @@ export default function ResumePage() {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    const savedId = localStorage.getItem("preppr_user_id") || "user_101";
+    const savedId = user?.user_id || localStorage.getItem("preppr_user_id") || "user_101";
     setUserId(savedId);
     fetchProfile(savedId);
-  }, []);
+  }, [user]);
 
   async function fetchProfile(id: string) {
     try {
@@ -53,7 +56,8 @@ export default function ResumePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <ProtectedRoute title="Resume & Profile RAG" description="Sign in to upload your resume, manage ATS parsing, and generate customized interview questions.">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
           <FileText className="w-8 h-8 text-cyan-400" /> Resume & Persona RAG Processing
@@ -159,5 +163,6 @@ export default function ResumePage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

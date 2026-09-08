@@ -40,6 +40,49 @@ export default function LiveInterviewRoom() {
     return () => clearInterval(interval);
   }, [sessionId]);
 
+  // Web Speech Recognition for live microphone speech-to-text
+  useEffect(() => {
+    if (!isMicActive) return;
+
+    const SpeechRecognition =
+      typeof window !== "undefined"
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : null;
+
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: any) => {
+      let currentTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        currentTranscript += event.results[i][0].transcript;
+      }
+      if (currentTranscript.trim()) {
+        setUserSpeech(currentTranscript);
+      }
+    };
+
+    recognition.onerror = (err: any) => {
+      console.warn("Speech recognition warning:", err);
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      // Ignore if already started
+    }
+
+    return () => {
+      try {
+        recognition.stop();
+      } catch (e) {}
+    };
+  }, [isMicActive]);
+
   const handleSendAnswer = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!userSpeech.trim() || loadingTurn) return;

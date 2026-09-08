@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getCompanies, getRoles, createInterviewSession } from "@/lib/api";
 import { Sparkles, Building2, Briefcase, Gauge, Clock, ArrowRight } from "lucide-react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/lib/auth-context";
 
 export default function InterviewSetupPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [companies, setCompanies] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
 
@@ -37,7 +40,7 @@ export default function InterviewSetupPage() {
     setLoading(true);
     setError("");
 
-    const userId = localStorage.getItem("preppr_user_id") || "user_101";
+    const userId = user?.user_id || localStorage.getItem("preppr_user_id") || "user_101";
 
     try {
       const res = await createInterviewSession({
@@ -57,7 +60,8 @@ export default function InterviewSetupPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12">
+    <ProtectedRoute title="Launch Mock Interview" description="Sign in to customize your target company, role rubric, difficulty level, and start practicing with the AI agent.">
+      <div className="max-w-3xl mx-auto px-4 py-12">
       <div className="text-center mb-10">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white mx-auto mb-4 shadow-xl shadow-brand-500/20">
           <Sparkles className="w-7 h-7" />
@@ -172,5 +176,6 @@ export default function InterviewSetupPage() {
         </button>
       </form>
     </div>
+    </ProtectedRoute>
   );
 }

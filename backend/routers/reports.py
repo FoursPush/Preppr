@@ -12,7 +12,7 @@ REPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "reports"
 
 
 class GenerateReportRequest(BaseModel):
-    user_name: Optional[str] = Field("Candidate", example="Soham")
+    user_name: Optional[str] = Field("Candidate", example="Chinmay")
     company_target: Optional[str] = Field("Amazon", example="Amazon")
     overall_score: Optional[float] = Field(84.5, example=84.5)
     competency_scores: Optional[dict] = Field(None, example={"technical": 85.0, "communication": 80.0})
