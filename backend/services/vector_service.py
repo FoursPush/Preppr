@@ -53,26 +53,58 @@ class VectorStoreManager:
         self, user_id: str, query_text: str, top_k: int = 3
     ) -> List[Dict[str, Any]]:
         """
-        Performs cosine similarity vector search over stored resume chunks.
+        Performs search over stored resume chunks in pgvector / PostgreSQL.
         """
-        logger.info(f"Searching pgvector resume context for user '{user_id}' with query: '{query_text}'")
-        return [
-            {
-                "chunk_text": f"Resume experience matching query '{query_text}' for user '{user_id}'",
-                "similarity_score": 0.92
-            }
-        ]
+        logger.info(f"Searching resume context for user '{user_id}' with query: '{query_text}'")
+        try:
+            from database.config import AsyncSessionLocal
+            from database.models import KnowledgeChunk, Resume
+            from sqlalchemy import select
+
+            async with AsyncSessionLocal() as session:
+                stmt = select(KnowledgeChunk).where(
+                    KnowledgeChunk.source_type == "resume",
+                    KnowledgeChunk.source_id == str(user_id)
+                ).limit(top_k)
+                res = await session.execute(stmt)
+                chunks = res.scalars().all()
+                if chunks:
+                    return [{"chunk_text": c.content, "similarity_score": 1.0} for c in chunks]
+
+                # Fallback to Resume extracted_text if available
+                if str(user_id).isdigit():
+                    r_stmt = select(Resume).where(Resume.user_id == int(user_id)).order_by(Resume.id.desc()).limit(1)
+                    r_res = await session.execute(r_stmt)
+                    resume = r_res.scalar_one_or_none()
+                    if resume and resume.extracted_text:
+                        return [{"chunk_text": resume.extracted_text[:1500], "similarity_score": 1.0}]
+        except Exception as e:
+            logger.debug("Database resume context lookup: %s", e)
+
+        return []
 
     async def search_knowledge_context(
         self, source_type: str, source_id: str, query_text: str, top_k: int = 3
     ) -> List[Dict[str, Any]]:
         """
-        Performs cosine similarity vector search over stored company or role knowledge chunks.
+        Performs similarity search over stored company or role knowledge chunks.
         """
-        logger.info(f"Searching pgvector {source_type} context for '{source_id}' with query: '{query_text}'")
-        return [
-            {
-                "chunk_text": f"Knowledge base domain context matching '{query_text}' for {source_type} '{source_id}'",
-                "similarity_score": 0.89
-            }
-        ]
+        logger.info(f"Searching {source_type} context for '{source_id}' with query: '{query_text}'")
+        try:
+            from database.config import AsyncSessionLocal
+            from database.models import KnowledgeChunk
+            from sqlalchemy import select
+
+            async with AsyncSessionLocal() as session:
+                stmt = select(KnowledgeChunk).where(
+                    KnowledgeChunk.source_type == source_type,
+                    KnowledgeChunk.source_id == str(source_id)
+                ).limit(top_k)
+                res = await session.execute(stmt)
+                chunks = res.scalars().all()
+                if chunks:
+                    return [{"chunk_text": c.content, "similarity_score": 1.0} for c in chunks]
+        except Exception as e:
+            logger.debug("Database knowledge context lookup: %s", e)
+
+        return []

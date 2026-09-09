@@ -1,9 +1,17 @@
 import os
 import logging
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+# Load environment variables from .env file immediately at startup
+env_file = os.path.join(os.path.dirname(__file__), ".env")
+if os.path.exists(env_file):
+    load_dotenv(dotenv_path=env_file)
+else:
+    load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 from sqlalchemy import text
 
 from database.config import engine, Base
@@ -24,10 +32,8 @@ from routers import (
     reports,
     analytics,
     dashboard,
+    stt,
 )
-
-# Load environment variables from .env file if present
-load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("preppr-main")
@@ -105,6 +111,7 @@ app.include_router(interviews.router)
 app.include_router(reports.router)
 app.include_router(analytics.router)
 app.include_router(dashboard.router)
+app.include_router(stt.router)
 
 
 @app.get("/", tags=["General"])

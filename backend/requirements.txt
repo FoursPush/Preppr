@@ -19,3 +19,8 @@ scipy
 librosa
 pymupdf
 reportlab
+torch
+torchaudio
+transformers
+accelerate
+soundfile
