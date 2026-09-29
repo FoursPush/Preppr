@@ -6,6 +6,13 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel, Field
 import httpx
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status, Depends
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from database.config import get_async_session
+from database.models import User, Resume, CandidateProfile
+from routers.interviews import resolve_user_int_id
 
 from services.vector_service import VectorStoreManager
 from pipelines.resume_pipeline import ResumePipeline
@@ -146,7 +153,24 @@ async def upload_resume_file(
     description="Returns structured candidate JSON profile parsed from uploaded resume."
 )
 @router.get("/api/resumes/profile", include_in_schema=False)
-async def get_candidate_profile(user_id: str = "user_101"):
+async def get_candidate_profile(
+    user_id: str = "user_101",
+    db: AsyncSession = Depends(get_async_session)
+):
+    user_int_id = await resolve_user_int_id(user_id, db)
+    if user_int_id is not None:
+        stmt = select(CandidateProfile).join(Resume).where(Resume.user_id == user_int_id).order_by(Resume.id.desc())
+        res = await db.execute(stmt)
+        profile = res.scalars().first()
+        if profile:
+            return CandidateProfileResponse(
+                user_id=user_id,
+                skills=profile.skills or [],
+                experience=profile.experience or [],
+                education=profile.education or [],
+                projects=profile.projects or []
+            )
+
     return CandidateProfileResponse(
         user_id=user_id,
         skills=["Python", "FastAPI", "PostgreSQL", "React", "LiveKit WebRTC", "Docker"],
@@ -179,15 +203,55 @@ async def get_candidate_profile(user_id: str = "user_101"):
     status_code=status.HTTP_200_OK,
     summary="Upload & Parse Resume PDF via AI"
 )
-async def extract_resume_pdf(file: UploadFile = File(...)):
+async def extract_resume_pdf(
+    file: UploadFile = File(...),
+    user_id: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_async_session)
+):
     """
     Delegates directly to the robust PDF extraction router in routers.resume.
     """
     from routers.resume import upload_pdf_resume
+    file_name = file.filename
     res = await upload_pdf_resume(file=file)
     data = res.model_dump() if hasattr(res, "model_dump") else res.dict()
     if "projects" not in data:
         data["projects"] = []
+    
+    # Save to database
+    if user_id:
+        user_int_id = await resolve_user_int_id(user_id, db)
+        if not user_int_id:
+            # Auto-create user for testing/demo purposes if they don't exist
+            new_user = User(
+                email=f"{user_id}@preppr.ai",
+                name="Test Candidate",
+                role="Software Engineer"
+            )
+            db.add(new_user)
+            await db.commit()
+            await db.refresh(new_user)
+            user_int_id = new_user.id
+
+        if user_int_id:
+            db_resume = Resume(
+                user_id=user_int_id,
+                file_name=file_name or "resume.pdf",
+                extracted_text=""
+            )
+            db.add(db_resume)
+            await db.flush()
+            
+            db_profile = CandidateProfile(
+                resume_id=db_resume.id,
+                skills=data.get("skills", []),
+                experience=[{"role": r} for r in data.get("past_roles", [])],
+                education=[{"degree": e} for e in data.get("education", [])],
+                projects=[{"title": p} for p in data.get("projects", [])]
+            )
+            db.add(db_profile)
+            await db.commit()
+    
     return {
         "status": "success",
         "data": data

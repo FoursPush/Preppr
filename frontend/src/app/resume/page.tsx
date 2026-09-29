@@ -1,20 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { uploadResumeChunks, getCandidateProfile } from "@/lib/api";
-import { FileText, Upload, CheckCircle2, Cpu, Code, Briefcase, GraduationCap, Sparkles } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { uploadResumeChunks, getCandidateProfile, CandidateProfile, uploadPdfResume } from "@/lib/api";
+import { FileText, Upload, CheckCircle2, Cpu, Code, Briefcase, GraduationCap, Sparkles, User, Mail, Phone, Folder, HelpCircle, Award } from "lucide-react";
 
 export default function ResumePage() {
   const [userId, setUserId] = useState("user_101");
-  const [resumeText, setResumeText] = useState(
-    "Senior Software Engineer with 5+ years of experience building distributed microservices using Python, FastAPI, React, and PostgreSQL. Architected low-latency streaming platforms using LiveKit WebRTC and Redis."
-  );
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchProfile = async (id: string) => {
+    try {
+      const data = await getCandidateProfile(id);
+      setProfile(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleFileChange = (file: File | undefined) => {
     if (!file) return;
@@ -58,19 +66,12 @@ export default function ResumePage() {
 
     setUploading(true);
     setStatusMsg("");
+    setErrorMsg(null);
 
     try {
-      // Split raw resume text into semantic paragraph chunks
-      const chunks = resumeText
-        .split("\n\n")
-        .map((c) => c.trim())
-        .filter((c) => c.length > 10);
-
-      const payloadChunks = chunks.length > 0 ? chunks : [resumeText];
-
-      const res = await uploadResumeChunks(userId, payloadChunks);
-      setStatusMsg(`Successfully embedded ${res.chunks_processed} chunks into pgvector!`);
-      fetchProfile(userId);
+      const uploadData = await uploadPdfResume(selectedFile, userId);
+      setStatusMsg("Successfully parsed and indexed PDF resume!");
+      setProfile(uploadData);
     } catch (err: any) {
       console.error("Resume Extraction Error:", err);
       setErrorMsg(err.message || "An unexpected error occurred while parsing the resume.");
@@ -97,19 +98,39 @@ export default function ResumePage() {
             <Upload className="w-5 h-5 text-brand-400" /> Upload & Index Resume Content
           </h2>
 
-          <form onSubmit={handleUpload} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-2">
-                Paste Resume Text Content
-              </label>
-              <textarea
-                rows={8}
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                className="w-full bg-dark-800 border border-white/10 rounded-xl p-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 text-xs font-mono leading-relaxed"
-                placeholder="Paste work experience, projects, and technical skills..."
+          <form onSubmit={handleUploadSubmit} className="space-y-4">
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+                isDragOver ? "border-brand-500 bg-brand-500/10" : "border-white/20 bg-dark-800 hover:border-brand-400 hover:bg-dark-700"
+              }`}
+            >
+              <input
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={(e) => handleFileChange(e.target.files?.[0])}
               />
+              <Upload className={`w-8 h-8 mx-auto mb-3 ${isDragOver ? "text-brand-400" : "text-gray-400"}`} />
+              {selectedFile ? (
+                <p className="text-brand-300 font-semibold text-sm">{selectedFile.name}</p>
+              ) : (
+                <>
+                  <p className="text-white font-semibold text-sm mb-1">Click to upload or drag and drop</p>
+                  <p className="text-gray-400 text-xs">PDF format only (Max 5MB)</p>
+                </>
+              )}
             </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                {errorMsg}
+              </div>
+            )}
 
             {statusMsg && (
               <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
@@ -127,61 +148,149 @@ export default function ResumePage() {
           </form>
         </div>
 
-        {/* Right Column: Parsed Candidate JSON Profile */}
-        <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
-          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-amber-400" /> Extracted Candidate Profile JSON
+        {/* Right Column: Parsed Candidate Details */}
+        <div className="p-6 rounded-2xl bg-[#1a1d27] border border-white/5 shadow-2xl">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <User className="w-6 h-6 text-yellow-500" /> Extracted Candidate Details
           </h2>
 
           {profile ? (
-            <div className="space-y-6 text-sm">
+            <div className="space-y-8 text-sm">
+              {/* Profile Card */}
+              <div className="p-5 rounded-xl bg-[#1f2330] border border-white/5 shadow-sm">
+                <h3 className="text-xl font-extrabold text-white mb-2">{profile.candidate_name || "Unknown Candidate"}</h3>
+                <div className="inline-block px-3 py-1 rounded-full bg-cyan-900/40 border border-cyan-800 text-cyan-400 text-xs font-bold mb-4">
+                  {profile.experience_years || 0} Years Experience
+                </div>
+                
+                <div className="h-px bg-white/5 w-full mb-4"></div>
+                
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-gray-300 text-sm">
+                  {profile.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-400" /> {profile.email}
+                    </div>
+                  )}
+                  {profile.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-emerald-500" /> {profile.phone}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Skills */}
               <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <Code className="w-4 h-4 text-brand-400" /> Detected Technical Skills
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Code className="w-5 h-5 text-gray-400" /> TECHNICAL & CORE SKILLS
                 </h3>
-                <div className="flex flex-wrap gap-2">
-                  {profile.skills?.map((skill: string, i: number) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1 rounded-lg bg-brand-500/10 border border-brand-500/30 text-brand-300 text-xs font-medium"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
+                {profile.skills && profile.skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2.5">
+                    {profile.skills.map((skill: string, i: number) => (
+                      <span
+                        key={i}
+                        className="px-3.5 py-1.5 rounded-lg bg-[#232736] border border-[#303649] text-gray-200 text-sm font-medium hover:bg-[#2a2f42] transition-colors"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No skills extracted.</p>
+                )}
               </div>
 
               {/* Work Experience */}
               <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <Briefcase className="w-4 h-4 text-cyan-400" /> Experience Highlights
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-cyan-400" /> PREVIOUS ROLES & EXPERIENCE
                 </h3>
-                {profile.experience?.map((exp: any, i: number) => (
-                  <div key={i} className="p-3 rounded-lg bg-dark-800/60 border border-white/5">
-                    <div className="flex justify-between text-xs font-bold text-white mb-1">
-                      <span>{exp.role}</span>
-                      <span className="text-gray-400">{exp.company}</span>
-                    </div>
-                    <p className="text-xs text-gray-400">{exp.highlights?.[0]}</p>
+                {profile.past_roles && profile.past_roles.length > 0 ? (
+                  <div className="space-y-3">
+                    {profile.past_roles.map((role: string, i: number) => (
+                      <div key={i} className="p-4 rounded-lg bg-[#1f2330] border border-[#2a2f42] text-gray-200 text-sm font-medium shadow-sm">
+                        {role}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="text-gray-500 text-sm">No previous roles extracted.</p>
+                )}
               </div>
 
-              {/* Education */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <GraduationCap className="w-4 h-4 text-emerald-400" /> Education
-                </h3>
-                {profile.education?.map((edu: any, i: number) => (
-                  <div key={i} className="text-xs text-gray-300">
-                    <span className="font-semibold text-white">{edu.degree}</span> – {edu.institution} ({edu.year})
+              {/* Projects */}
+              {profile.projects && profile.projects.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Folder className="w-5 h-5 text-purple-400" /> PROJECTS
+                  </h3>
+                  <div className="space-y-3">
+                    {profile.projects.map((proj: string, i: number) => (
+                      <div key={i} className="p-4 rounded-lg bg-[#1f2330] border border-[#2a2f42] text-gray-200 text-sm shadow-sm">
+                        {proj}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* Education */}
+              {profile.education && profile.education.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5 text-amber-500" /> EDUCATION
+                  </h3>
+                  <div className="space-y-3">
+                    {profile.education.map((edu: string, i: number) => (
+                      <div key={i} className="p-4 rounded-lg bg-[#1f2330] border border-[#2a2f42] text-gray-200 text-sm shadow-sm">
+                        {edu}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Certifications */}
+              {profile.certifications && profile.certifications.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Award className="w-5 h-5 text-pink-500" /> CERTIFICATIONS
+                  </h3>
+                  <div className="space-y-3">
+                    {profile.certifications.map((cert: string, i: number) => (
+                      <div key={i} className="p-4 rounded-lg bg-[#1f2330] border border-[#2a2f42] text-gray-200 text-sm shadow-sm">
+                        {cert}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Suggested Interview Questions */}
+              {profile.suggested_interview_questions && profile.suggested_interview_questions.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <HelpCircle className="w-5 h-5 text-emerald-500" /> SUGGESTED INTERVIEW QUESTIONS
+                  </h3>
+                  <div className="space-y-3">
+                    {profile.suggested_interview_questions.map((question: string, i: number) => (
+                      <div key={i} className="flex gap-4 p-4 rounded-xl bg-emerald-950/20 border border-emerald-900/40 text-gray-200 text-sm">
+                        <span className="shrink-0 bg-emerald-900/80 text-emerald-400 font-bold px-2 py-1 rounded text-xs h-fit mt-0.5">
+                          Q{i + 1}
+                        </span>
+                        <p className="leading-relaxed font-medium">{question}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           ) : (
-            <p className="text-gray-400 text-xs">No profile parsed yet. Submit resume text above.</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-white/5 rounded-xl bg-[#1f2330]">
+               <User className="w-12 h-12 text-gray-600 mb-4" />
+               <p className="text-gray-400 text-sm">No profile parsed yet.<br/>Upload a PDF resume above to extract candidate details.</p>
+            </div>
           )}
         </div>
       </div>
