@@ -1,3 +1,11 @@
+# Environment & Secrets
+.env
+.env.*
+.env.local
+backend/.env
+frontend/.env.local
+*.env
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

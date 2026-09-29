@@ -40,6 +40,38 @@ class DashboardHistoryResponse(BaseModel):
     sessions: List[SessionHistoryItem]
 
 
+async def resolve_user_int_id(user_id_str: str, db: AsyncSession) -> Optional[int]:
+    """Resolves an integer User.id from numeric string, user_ prefix, or email."""
+    if not user_id_str:
+        return None
+    user_id_str = user_id_str.strip()
+
+    # 1. Direct integer (e.g. "1")
+    if user_id_str.isdigit():
+        uid = int(user_id_str)
+        stmt = select(User.id).where(User.id == uid)
+        res = await db.execute(stmt)
+        if res.scalar_one_or_none() is not None:
+            return uid
+
+    # 2. 'user_' prefix (e.g. "user_1")
+    if user_id_str.startswith("user_") and user_id_str[5:].isdigit():
+        uid = int(user_id_str[5:])
+        stmt = select(User.id).where(User.id == uid)
+        res = await db.execute(stmt)
+        if res.scalar_one_or_none() is not None:
+            return uid
+
+    # 3. Lookup by email
+    stmt = select(User.id).where(func.lower(User.email) == user_id_str.lower())
+    res = await db.execute(stmt)
+    uid = res.scalar_one_or_none()
+    if uid is not None:
+        return uid
+
+    return None
+
+
 # --- Endpoints ---
 
 @router.get(
@@ -54,11 +86,7 @@ async def get_dashboard_summary(
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
-        user_int_id = None
-        try:
-            user_int_id = int(user_id)
-        except ValueError:
-            user_int_id = None
+        user_int_id = await resolve_user_int_id(user_id, db)
 
         if user_int_id is not None:
             # Query DB for aggregated session metrics
@@ -66,7 +94,10 @@ async def get_dashboard_summary(
             total_result = await db.execute(total_stmt)
             total_completed = total_result.scalar_one_or_none() or 0
 
-            avg_score_stmt = select(func.avg(InterviewSession.overall_score)).where(InterviewSession.user_id == user_int_id)
+            avg_score_stmt = select(func.avg(InterviewSession.overall_score)).where(
+                InterviewSession.user_id == user_int_id,
+                InterviewSession.overall_score.isnot(None)
+            )
             avg_score_result = await db.execute(avg_score_stmt)
             avg_score = avg_score_result.scalar_one_or_none() or 0.0
 
@@ -78,20 +109,19 @@ async def get_dashboard_summary(
             avg_wpm_result = await db.execute(avg_wpm_stmt)
             avg_wpm = avg_wpm_result.scalar_one_or_none() or 0.0
 
-            if total_completed > 0:
-                return DashboardSummaryResponse(
-                    user_id=user_id,
-                    average_overall_score=round(float(avg_score), 1),
-                    average_wpm=round(float(avg_wpm), 1),
-                    total_interviews_completed=total_completed
-                )
+            return DashboardSummaryResponse(
+                user_id=user_id,
+                average_overall_score=round(float(avg_score), 1) if avg_score else 0.0,
+                average_wpm=round(float(avg_wpm), 1) if avg_wpm else 0.0,
+                total_interviews_completed=total_completed
+            )
 
-        # Fallback response for non-numeric/mock user IDs
+        # Real zero-state when no sessions or user is not found
         return DashboardSummaryResponse(
             user_id=user_id,
-            average_overall_score=84.5,
-            average_wpm=142.0,
-            total_interviews_completed=4
+            average_overall_score=0.0,
+            average_wpm=0.0,
+            total_interviews_completed=0
         )
 
     except Exception as e:
@@ -114,11 +144,7 @@ async def get_dashboard_history(
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
-        user_int_id = None
-        try:
-            user_int_id = int(user_id)
-        except ValueError:
-            user_int_id = None
+        user_int_id = await resolve_user_int_id(user_id, db)
 
         if user_int_id is not None:
             stmt = (
@@ -130,48 +156,29 @@ async def get_dashboard_history(
             result = await db.execute(stmt)
             rows = result.all()
 
-            if rows:
-                history_items = []
-                for session_row, analytics_row in rows:
-                    history_items.append(
-                        SessionHistoryItem(
-                            session_id=str(session_row.id),
-                            company_target=session_row.company_target,
-                            overall_score=session_row.overall_score,
-                            created_at=session_row.created_at.isoformat() if session_row.created_at else "N/A",
-                            average_wpm=analytics_row.average_wpm if analytics_row else None,
-                            total_filler_words=analytics_row.total_filler_words if analytics_row else None,
-                        )
+            history_items = []
+            for session_row, analytics_row in rows:
+                history_items.append(
+                    SessionHistoryItem(
+                        session_id=str(session_row.id),
+                        company_target=session_row.company_target or "Target Tech",
+                        overall_score=round(float(session_row.overall_score), 1) if session_row.overall_score is not None else None,
+                        created_at=session_row.created_at.isoformat() if session_row.created_at else "N/A",
+                        average_wpm=round(float(analytics_row.average_wpm), 1) if analytics_row and analytics_row.average_wpm else None,
+                        total_filler_words=analytics_row.total_filler_words if analytics_row else None,
                     )
-                return DashboardHistoryResponse(
-                    user_id=user_id,
-                    total_sessions=len(history_items),
-                    sessions=history_items
                 )
-
-        # Fallback response for mock environment
-        mock_sessions = [
-            SessionHistoryItem(
-                session_id="sess_600",
-                company_target="Amazon",
-                overall_score=86.2,
-                created_at="2026-08-02T12:00:00Z",
-                average_wpm=150.0,
-                total_filler_words=2
-            ),
-            SessionHistoryItem(
-                session_id="sess_500",
-                company_target="Google",
-                overall_score=83.5,
-                created_at="2026-08-01T15:30:00Z",
-                average_wpm=138.0,
-                total_filler_words=4
+            return DashboardHistoryResponse(
+                user_id=user_id,
+                total_sessions=len(history_items),
+                sessions=history_items
             )
-        ]
+
+        # Real empty history response when no sessions exist for user
         return DashboardHistoryResponse(
             user_id=user_id,
-            total_sessions=len(mock_sessions),
-            sessions=mock_sessions
+            total_sessions=0,
+            sessions=[]
         )
 
     except Exception as e:
