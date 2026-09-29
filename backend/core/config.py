@@ -33,10 +33,14 @@ class Settings(BaseSettings):
         description="Vector dimension output of bge-small-en-v1.5 model"
     )
 
-    # Local Speech-to-Text (Faster-Whisper) Configuration
+    # Speech-to-Text (Whisper v3 Large) Configuration
+    STT_PROVIDER: str = Field(
+        default="whisper",
+        description="STT provider (whisper, deepgram)"
+    )
     WHISPER_MODEL: str = Field(
-        default="base",
-        description="Faster-Whisper local model size (tiny, base, small, medium)"
+        default="whisper-large-v3",
+        description="Whisper model version (whisper-large-v3, openai/whisper-large-v3, large-v3, base)"
     )
     WHISPER_DEVICE: str = Field(
         default="cpu",
@@ -44,7 +48,21 @@ class Settings(BaseSettings):
     )
     WHISPER_COMPUTE_TYPE: str = Field(
         default="int8",
-        description="Quantization compute type (int8, float32)"
+        description="Quantization compute type (int8, float32, float16)"
+    )
+
+    # Text-to-Speech (TTS) Configuration
+    TTS_PROVIDER: str = Field(
+        default="openai",
+        description="TTS provider (openai, cartesia, kokoro)"
+    )
+    TTS_MODEL: str = Field(
+        default="tts-1-hd",
+        description="TTS model name (tts-1-hd, tts-1, sonic-english)"
+    )
+    TTS_VOICE: str = Field(
+        default="alloy",
+        description="TTS voice identifier (alloy, echo, fable, onyx, nova, shimmer)"
     )
 
     # Database Configuration

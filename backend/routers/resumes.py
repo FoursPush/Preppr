@@ -1,9 +1,18 @@
+import io
+import json
+import logging
+import os
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel, Field
+import httpx
+
 from services.vector_service import VectorStoreManager
 from pipelines.resume_pipeline import ResumePipeline
 
+import fitz
+import httpx
+import json
 router = APIRouter(tags=["Resumes & Vector RAG"])
 vector_manager = VectorStoreManager()
 
@@ -163,3 +172,24 @@ async def get_candidate_profile(user_id: str = "user_101"):
             }
         ]
     )
+
+
+@router.post(
+    "/api/v1/resume/upload",
+    status_code=status.HTTP_200_OK,
+    summary="Upload & Parse Resume PDF via AI"
+)
+async def extract_resume_pdf(file: UploadFile = File(...)):
+    """
+    Delegates directly to the robust PDF extraction router in routers.resume.
+    """
+    from routers.resume import upload_pdf_resume
+    res = await upload_pdf_resume(file=file)
+    data = res.model_dump() if hasattr(res, "model_dump") else res.dict()
+    if "projects" not in data:
+        data["projects"] = []
+    return {
+        "status": "success",
+        "data": data
+    }
+

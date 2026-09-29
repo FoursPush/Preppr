@@ -1,7 +1,11 @@
 import os
+from dotenv import load_dotenv
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+
+# Load .env file
+load_dotenv()
 
 # Read DATABASE_URL from environment variable with async PostgreSQL default
 DATABASE_URL = os.getenv(
