@@ -9,10 +9,12 @@ Preppr is an advanced full-stack AI platform designed to conduct realistic, low-
 ## ✨ Key Capabilities
 
 * **🎙️ Real-Time Voice & Text AI Interviewer**: Multi-turn conversation powered by LiveKit WebRTC streaming, Deepgram STT, OpenAI LLM, and Cartesia TTS.
+* **💻 Live Coding & Whiteboard Environment**: Interactive code editor with sandbox execution, Big-O ($O(N)$, $O(1)$) complexity evaluation, edge case analysis, and architecture design canvas with real-time AI critique.
 * **📄 Resume-Aware RAG Persona Injection**: Vector embeddings stored in PostgreSQL via `pgvector` for personalized technical and experience-focused questions.
 * **📊 Acoustic Telemetry Tracking**: Live analysis of Words Per Minute (WPM), filler word count (*um*, *uh*, *like*), silence durations, and speech stability.
 * **🏆 LLM-as-a-Judge Rubric Evaluation**: Automated evaluation scoring Technical Accuracy, Problem Solving, Communication, STAR Framework alignment, and overall readiness.
 * **📑 PDF Report Generation**: Compiles session telemetry, competency radar matrices, strengths, weaknesses, and a 2-week improvement plan into downloadable PDF reports.
+
 
 ---
 
@@ -142,6 +144,8 @@ docker-compose up -d postgres
 | `POST` | `/interviews` | Create session & generate initial interview question |
 | `GET` | `/interviews/{id}` | Fetch current interview state & turn history |
 | `POST` | `/interviews/{id}/answer` | Process candidate response & return adaptive follow-up |
+| `POST` | `/interviews/{id}/review-code` | Analyze candidate code/architecture, compute Big-O complexity & return interviewer critique |
+| `POST` | `/interviews/run-code` | Execute and test code in sandbox with stdout output & runtime metrics |
 | `POST` | `/interviews/{id}/end` | End interview session & trigger evaluation engine |
 | `GET` | `/interviews/{id}/evaluation` | Get competency scores and written AI feedback |
 | `POST` | `/reports/{id}/generate` | Compile PDF report artifact |

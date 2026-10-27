@@ -24,8 +24,14 @@ import {
   Video,
   VideoOff,
   Eye,
-  AudioWaveform as WaveformIcon
+  AudioWaveform as WaveformIcon,
+  Code2,
+  Columns,
+  MessageSquare,
+  ArrowRight
 } from "lucide-react";
+import LiveCodingWhiteboard from "@/components/LiveCodingWhiteboard";
+import { isTechRole } from "@/lib/leetcodeProblems";
 
 export default function LiveInterviewRoom() {
   const params = useParams();
@@ -38,6 +44,10 @@ export default function LiveInterviewRoom() {
   const [loadingTurn, setLoadingTurn] = useState(false);
   const [processingAudio, setProcessingAudio] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(900); // 15 mins
+  const [layoutMode, setLayoutMode] = useState<"chat" | "split" | "code">("chat");
+  const [interviewPhase, setInterviewPhase] = useState<"qa" | "dsa">("qa");
+
+
 
   // Telemetry counters
   const [liveWpm, setLiveWpm] = useState(140);
@@ -512,6 +522,12 @@ export default function LiveInterviewRoom() {
               setLiveFillers((prev) => prev + res.telemetry.filler_count);
             }
           }
+          if (isTech && interviewPhase === "qa") {
+            setTimeout(() => {
+              setInterviewPhase("dsa");
+              setLayoutMode("split");
+            }, 800);
+          }
           setUserSpeech("");
         } catch (audioErr: any) {
           // If server audio transcription is still initializing or encountered an issue,
@@ -581,6 +597,14 @@ export default function LiveInterviewRoom() {
 
       // Append AI response
       setHistory((prev) => [...prev, { role: "interviewer", text: res.ai_response }]);
+
+      // For tech roles: transition from QA to the hands-on DSA coding section!
+      if (isTech && interviewPhase === "qa") {
+        setTimeout(() => {
+          setInterviewPhase("dsa");
+          setLayoutMode("split");
+        }, 800);
+      }
     } catch (err) {
       console.warn("Backend turn processing note, using adaptive conversational response:", err);
       // Backend unreachable — rotate through varied probes so a repeated outage
@@ -636,94 +660,33 @@ export default function LiveInterviewRoom() {
     return `${mins.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col h-[calc(100vh-5rem)]">
-      <VisionCoachOverlay
-        monitor={vision}
-        showConsent={showCameraConsent}
-        onEnable={handleEnableCamera}
-        onDismiss={() => setShowCameraConsent(false)}
-      />
-      {/* Top Telemetry & Controls Bar */}
-      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl mb-4 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
-          <div>
-            <div className="font-bold text-white text-sm flex items-center gap-2">
-              Live Mock Session: <span className="text-brand-300">{sessionState?.company_name || "Amazon"} ({sessionState?.role_name || "Backend Engineer"})</span>
-            </div>
-            <div className="text-[11px] text-gray-400 flex items-center gap-1.5 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Real-time Voice Input Active</span>
-              {isSpeaking && (
-                <span className="flex items-center gap-1 text-emerald-300 ml-2">
-                  <Volume2 className="w-3 h-3 animate-pulse" /> Interviewer speaking...
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+  const isTech = isTechRole(sessionState?.role_name, sessionState?.role_category);
 
-        {/* Real-time Telemetry Badges */}
-        <div className="flex items-center gap-3 text-xs font-semibold">
-          <div className="px-3 py-1.5 rounded-lg bg-dark-800 border border-white/10 text-gray-300 flex items-center gap-1.5" title="Interview countdown">
-            <Clock className="w-3.5 h-3.5 text-amber-400" /> {formatTimer(timerSeconds)}
-          </div>
-          <div className="px-3 py-1.5 rounded-lg bg-brand-500/10 border border-brand-500/30 text-brand-300 flex items-center gap-1.5" title="Words Per Minute">
-            <BarChart3 className="w-3.5 h-3.5 text-brand-400" /> {liveWpm} WPM
-          </div>
-          <div className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 flex items-center gap-1.5" title="Detected Filler Words">
-            <AlertCircle className="w-3.5 h-3.5 text-cyan-400" /> {liveFillers} Fillers
-          </div>
-          {vision.enabled && (
-            <>
-              <div className="px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/30 text-violet-200 flex items-center gap-1.5" title="Eye contact (on-device, delivery coaching only)">
-                <Eye className="w-3.5 h-3.5 text-violet-300" /> {vision.badge.eyeContactPct ?? "—"}% Eye
-              </div>
-              <div className="px-3 py-1.5 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-200 flex items-center gap-1.5" title="Posture steadiness (on-device)">
-                <Video className="w-3.5 h-3.5 text-fuchsia-300" /> {vision.badge.postureStability ?? "—"} Posture
-              </div>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={toggleVoice}
-            title={voiceEnabled ? "Interviewer voice is on — click to mute" : "Interviewer voice is off — click to unmute"}
-            className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all ${
-              voiceEnabled
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                : "bg-dark-800 border-white/10 text-gray-400"
-            }`}
-          >
-            {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{voiceEnabled ? "Voice On" : "Voice Off"}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleToggleCamera}
-            title={vision.enabled ? "Camera coach is on — click to turn off" : "Turn on the on-device camera coach (eye contact, posture)"}
-            className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all ${
-              vision.enabled
-                ? "bg-violet-500/10 border-violet-500/30 text-violet-200"
-                : "bg-dark-800 border-white/10 text-gray-400"
-            }`}
-          >
-            {vision.enabled ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{vision.enabled ? "Camera On" : "Camera Off"}</span>
-          </button>
-        </div>
+  const startDsaRound = () => {
+    setInterviewPhase("dsa");
+    setLayoutMode("split");
+    const dsaAnnouncement = "Great discussion on your background! Now let's move into our hands-on Algorithmic & Problem-Solving round. I've presented a LeetCode problem in your code workspace on the right. Please review the problem description, explain your approach, and implement your solution.";
+    setHistory((prev) => [
+      ...prev,
+      { role: "interviewer", text: dsaAnnouncement },
+    ]);
+    speak(dsaAnnouncement);
+  };
 
-        {/* End Button */}
-        <button
-          onClick={handleEndInterview}
-          className="px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-bold transition-all flex items-center gap-2"
-        >
-          <Square className="w-3.5 h-3.5 fill-current" /> End Session & View Rubric
-        </button>
-      </div>
+  const handleCodeSubmitted = (candidateText: string, aiResponse: string) => {
+    setHistory((prev) => [
+      ...prev,
+      { role: "candidate", text: candidateText },
+      { role: "interviewer", text: aiResponse },
+    ]);
+    speak(aiResponse);
+  };
 
+
+  const renderChatPane = () => (
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Main Conversation Room */}
-      <div className="flex-1 overflow-y-auto p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl space-y-4 mb-4">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl space-y-4 mb-3">
         {history.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400 space-y-3">
             <Sparkles className="w-8 h-8 text-brand-400 animate-spin" />
@@ -750,11 +713,11 @@ export default function LiveInterviewRoom() {
             <div
               className={`p-4 rounded-2xl max-w-2xl text-sm leading-relaxed ${
                 turn.role === "candidate"
-                  ? "bg-gradient-to-r from-brand-600 to-indigo-600 text-white rounded-tr-none shadow-lg shadow-brand-500/10"
-                  : "bg-dark-800 border border-white/10 text-gray-100 rounded-tl-none"
+                  ? "bg-gradient-to-r from-brand-600 to-indigo-600 text-white rounded-tr-none shadow-lg shadow-brand-500/10 font-sans"
+                  : "bg-dark-800 border border-white/10 text-gray-100 rounded-tl-none font-sans"
               }`}
             >
-              {turn.text}
+              <div className="whitespace-pre-wrap">{turn.text}</div>
             </div>
           </div>
         ))}
@@ -770,12 +733,46 @@ export default function LiveInterviewRoom() {
         {/* AI Thinking Status */}
         {loadingTurn && !processingAudio && (
           <div className="flex items-center gap-3 text-xs text-brand-400 animate-pulse">
-            <Sparkles className="w-4 h-4" /> Preppr AI is assessing STAR structure & crafting adaptive follow-up...
+            <Sparkles className="w-4 h-4" /> Preppr AI is assessing response & crafting adaptive follow-up...
+          </div>
+        )}
+
+        {/* DSA Transition Callout for Tech Roles */}
+        {isTech && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-brand-950/60 to-indigo-950/40 border border-brand-500/30 backdrop-blur flex flex-wrap items-center justify-between gap-3 text-xs shadow-inner">
+            <div className="flex items-center gap-2.5 text-brand-200">
+              <div className="w-7 h-7 rounded-lg bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
+                <Code2 className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-white text-xs">
+                  {interviewPhase === "qa"
+                    ? "Phase 1: Technical & Background Q&A"
+                    : "Phase 2: LeetCode & Algorithmic Problem Solving"}
+                </div>
+                <div className="text-[11px] text-gray-400">
+                  {interviewPhase === "qa"
+                    ? "Answer the question above, or proceed directly to your live LeetCode DSA challenge."
+                    : "Review the problem description, run test cases, and submit your solution."}
+                </div>
+              </div>
+            </div>
+            {interviewPhase === "qa" && (
+              <button
+                type="button"
+                onClick={startDsaRound}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold transition-all shadow-md shadow-brand-500/20 flex items-center gap-1.5 text-xs"
+              >
+                <span>Proceed to DSA Challenge</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         )}
 
         <div ref={chatBottomRef} />
       </div>
+
 
       {/* Voice Recording Modal / Active Microphone Panel */}
       {isRecording && (
@@ -859,7 +856,7 @@ export default function LiveInterviewRoom() {
       )}
 
       {/* Speech Visualizer & Response Input Bar */}
-      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
+      <div className="p-3 md:p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
         <form onSubmit={handleSendAnswer} className="flex items-center gap-3">
           {/* Microphone Action Button */}
           {!isRecording ? (
@@ -867,21 +864,21 @@ export default function LiveInterviewRoom() {
               type="button"
               onClick={startVoiceRecording}
               disabled={loadingTurn || processingAudio}
-              className="px-4 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-md shadow-red-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-3.5 md:px-4 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-md shadow-red-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
               title="Answer with Microphone"
             >
               <Mic className="w-4 h-4 animate-pulse" />
-              <span className="hidden sm:inline">Answer with Mic</span>
+              <span className="hidden sm:inline">Voice</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={stopVoiceRecordingAndProcess}
-              className="px-4 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md animate-pulse flex items-center gap-2"
+              className="px-3.5 md:px-4 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md animate-pulse flex items-center gap-2"
               title="Stop Recording and Submit Answer"
             >
               <Square className="w-4 h-4 fill-current" />
-              <span className="hidden sm:inline">Stop & Send</span>
+              <span className="hidden sm:inline">Stop</span>
             </button>
           )}
 
@@ -893,10 +890,10 @@ export default function LiveInterviewRoom() {
             disabled={isRecording || processingAudio || loadingTurn}
             placeholder={
               isRecording
-                ? "Transcribing your speech in real time... Click 'Stop & Submit Answer' when done."
+                ? "Transcribing your speech in real time..."
                 : processingAudio
-                ? "Processing audio and evaluating response..."
-                : "Type your answer or click 'Answer with Mic' to speak..."
+                ? "Processing audio..."
+                : "Type your answer or speak with mic..."
             }
             className="flex-1 bg-dark-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 disabled:opacity-75"
           />
@@ -905,18 +902,18 @@ export default function LiveInterviewRoom() {
           <button
             type="submit"
             disabled={!userSpeech.trim() || loadingTurn || processingAudio || isRecording}
-            className="px-5 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
+            className="px-4 md:px-5 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
           >
-            Send <Send className="w-4 h-4" />
+            <span className="hidden sm:inline">Send</span> <Send className="w-4 h-4" />
           </button>
         </form>
 
         {/* Voice Turn Controls Footer */}
-        <div className="mt-2.5 flex items-center justify-between text-[11px] text-gray-400 px-1">
+        <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400 px-1">
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-brand-300">
               <Zap className="w-3 h-3 text-amber-400" />
-              <span>Real-time voice capture enabled</span>
+              <span>Voice capture ready</span>
             </span>
           </div>
 
@@ -927,10 +924,200 @@ export default function LiveInterviewRoom() {
               onChange={(e) => setAutoSubmitVoice(e.target.checked)}
               className="rounded bg-dark-800 border-white/10 text-brand-500 focus:ring-0 focus:ring-offset-0"
             />
-            <span>Auto-submit voice answer when finished speaking</span>
+            <span>Auto-submit when done</span>
           </label>
         </div>
       </div>
     </div>
   );
+
+  return (
+    <div className={`w-full mx-auto px-4 py-4 flex flex-col h-[calc(100vh-4.5rem)] transition-all ${layoutMode === "chat" ? "max-w-6xl" : "max-w-[1700px]"}`}>
+      <VisionCoachOverlay
+        monitor={vision}
+        showConsent={showCameraConsent}
+        onEnable={handleEnableCamera}
+        onDismiss={() => setShowCameraConsent(false)}
+      />
+      {/* Top Telemetry & Controls Bar */}
+      <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
+          <div>
+            <div className="font-bold text-white text-sm flex items-center gap-2">
+              Live Mock Session: <span className="text-brand-300">{sessionState?.company_name || "Amazon"} ({sessionState?.role_name || "Backend Engineer"})</span>
+            </div>
+            <div className="text-[11px] text-gray-400 flex items-center gap-1.5 mt-0.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>Real-time Voice Input Active</span>
+              {isSpeaking && (
+                <span className="flex items-center gap-1 text-emerald-300 ml-2">
+                  <Volume2 className="w-3 h-3 animate-pulse" /> Interviewer speaking...
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Layout Switcher & DSA Mode Controls (Only for Tech / Developer Roles) */}
+        {isTech && (
+          <div className="flex items-center gap-2">
+            {interviewPhase === "qa" && (
+              <button
+                type="button"
+                onClick={startDsaRound}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-brand-500/20 flex items-center gap-1.5 transition-all animate-pulse"
+                title="Transition to LeetCode DSA Solving Phase"
+              >
+                <Code2 className="w-3.5 h-3.5" />
+                <span>Begin DSA Round</span>
+              </button>
+            )}
+
+            <div className="flex items-center gap-1 bg-dark-800 p-1 rounded-xl border border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={() => setLayoutMode("chat")}
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-medium transition-all ${
+                  layoutMode === "chat"
+                    ? "bg-brand-600 text-white font-bold shadow-md shadow-brand-500/20"
+                    : "text-gray-400 hover:text-white"
+                }`}
+                title="Q&A Chat View"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Q&A Chat</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInterviewPhase("dsa");
+                  setLayoutMode("split");
+                }}
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-medium transition-all ${
+                  layoutMode === "split"
+                    ? "bg-brand-600 text-white font-bold shadow-md shadow-brand-500/20"
+                    : "text-gray-400 hover:text-white"
+                }`}
+                title="Split Screen: Chat + LeetCode DSA Workspace"
+              >
+                <Columns className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Split DSA & Chat</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInterviewPhase("dsa");
+                  setLayoutMode("code");
+                }}
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-medium transition-all ${
+                  layoutMode === "code"
+                    ? "bg-brand-600 text-white font-bold shadow-md shadow-brand-500/20"
+                    : "text-gray-400 hover:text-white"
+                }`}
+                title="Full Code Focus Workspace"
+              >
+                <Code2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Code Focus</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+
+        {/* Real-time Telemetry Badges */}
+        <div className="flex items-center gap-2 md:gap-3 text-xs font-semibold">
+          <div className="px-2.5 py-1.5 rounded-lg bg-dark-800 border border-white/10 text-gray-300 flex items-center gap-1.5" title="Interview countdown">
+            <Clock className="w-3.5 h-3.5 text-amber-400" /> {formatTimer(timerSeconds)}
+          </div>
+          <div className="px-2.5 py-1.5 rounded-lg bg-brand-500/10 border border-brand-500/30 text-brand-300 flex items-center gap-1.5" title="Words Per Minute">
+            <BarChart3 className="w-3.5 h-3.5 text-brand-400" /> {liveWpm} WPM
+          </div>
+          <div className="px-2.5 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 flex items-center gap-1.5" title="Detected Filler Words">
+            <AlertCircle className="w-3.5 h-3.5 text-cyan-400" /> {liveFillers} Fillers
+          </div>
+          {vision.enabled && (
+            <>
+              <div className="px-2.5 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/30 text-violet-200 flex items-center gap-1.5" title="Eye contact (on-device, delivery coaching only)">
+                <Eye className="w-3.5 h-3.5 text-violet-300" /> {vision.badge.eyeContactPct ?? "—"}% Eye
+              </div>
+              <div className="px-2.5 py-1.5 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-200 flex items-center gap-1.5" title="Posture steadiness (on-device)">
+                <Video className="w-3.5 h-3.5 text-fuchsia-300" /> {vision.badge.postureStability ?? "—"} Posture
+              </div>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={toggleVoice}
+            title={voiceEnabled ? "Interviewer voice is on — click to mute" : "Interviewer voice is off — click to unmute"}
+            className={`px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all ${
+              voiceEnabled
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                : "bg-dark-800 border-white/10 text-gray-400"
+            }`}
+          >
+            {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{voiceEnabled ? "Voice On" : "Voice Off"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleCamera}
+            title={vision.enabled ? "Camera coach is on — click to turn off" : "Turn on the on-device camera coach (eye contact, posture)"}
+            className={`px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all ${
+              vision.enabled
+                ? "bg-violet-500/10 border-violet-500/30 text-violet-200"
+                : "bg-dark-800 border-white/10 text-gray-400"
+            }`}
+          >
+            {vision.enabled ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{vision.enabled ? "Camera On" : "Camera Off"}</span>
+          </button>
+        </div>
+
+        {/* End Button */}
+        <button
+          onClick={handleEndInterview}
+          className="px-3.5 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-bold transition-all flex items-center gap-2"
+        >
+          <Square className="w-3.5 h-3.5 fill-current" /> End Session
+        </button>
+      </div>
+
+      {/* Main Content Area based on Layout Mode & Role Category */}
+      {(!isTech || layoutMode === "chat") && renderChatPane()}
+
+      {isTech && layoutMode === "split" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
+          {/* Left Column: Interview Chat & Voice (5 columns) */}
+          <div className="lg:col-span-5 flex flex-col h-full min-h-0">
+            {renderChatPane()}
+          </div>
+
+          {/* Right Column: LeetCode DSA Workspace (7 columns) */}
+          <div className="lg:col-span-7 h-full min-h-0">
+            <LiveCodingWhiteboard
+              sessionId={sessionId}
+              roleName={sessionState?.role_name}
+              companyName={sessionState?.company_name}
+              difficulty={sessionState?.difficulty}
+              onCodeSubmittedToChat={handleCodeSubmitted}
+            />
+          </div>
+        </div>
+      )}
+
+      {isTech && layoutMode === "code" && (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <LiveCodingWhiteboard
+            sessionId={sessionId}
+            roleName={sessionState?.role_name}
+            companyName={sessionState?.company_name}
+            difficulty={sessionState?.difficulty}
+            onCodeSubmittedToChat={handleCodeSubmitted}
+          />
+        </div>
+      )}
+    </div>
+  );
 }
+

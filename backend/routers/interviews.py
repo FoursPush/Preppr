@@ -156,6 +156,37 @@ class EvaluationDetailResponse(BaseModel):
     vision_summary: Optional[Dict[str, Any]] = None
 
 
+class CodeReviewRequest(BaseModel):
+    code: str = Field(..., example="def two_sum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        if target - num in seen:\n            return [seen[target - num], i]\n        seen[num] = i\n    return []")
+    language: str = Field("python", example="python")
+    problem_title: Optional[str] = Field(None, example="Two Sum")
+    candidate_notes: Optional[str] = Field(None, example="Using single-pass hash map for O(N) time and O(N) space.")
+
+
+class CodeReviewResponse(BaseModel):
+    session_id: str
+    ai_response: str
+    time_complexity: str
+    space_complexity: str
+    correctness_score: int
+    verdict: str
+    edge_cases_missed: List[str]
+    optimizations: List[str]
+
+
+class CodeRunRequest(BaseModel):
+    code: str = Field(..., example="print('Hello World')")
+    language: str = Field("python", example="python")
+    test_cases: Optional[List[Dict[str, Any]]] = None
+
+
+class CodeRunResponse(BaseModel):
+    success: bool
+    output: str
+    execution_time_ms: float
+
+
+
 @router.post(
     "/interviews",
     response_model=CreateInterviewResponse,
@@ -547,6 +578,132 @@ async def process_answer_audio_turn(
         adaptation_type=turn_res.adaptation_type,
         telemetry=turn_res.telemetry
     )
+
+
+@router.post(
+    "/interviews/{session_id}/review-code",
+    response_model=CodeReviewResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Submit and Review Code or Whiteboard Architecture",
+    description="Analyzes candidate code logic, Big-O Time & Space Complexity, edge cases, and provides adaptive interviewer feedback."
+)
+@router.post("/api/interviews/{session_id}/review-code", include_in_schema=False)
+async def review_interview_code(
+    session_id: str,
+    payload: CodeReviewRequest,
+    db: AsyncSession = Depends(get_async_session)
+):
+    sess = SESSIONS_STORE.get(session_id)
+    company_name = sess.get("company_name", "Mock Interview AI") if sess else "Mock Interview AI"
+    role_name = sess.get("role_name", "Software Engineer") if sess else "Software Engineer"
+
+    result = await engine.evaluate_code_submission(
+        session_id=session_id,
+        code=payload.code,
+        language=payload.language,
+        problem_title=payload.problem_title,
+        candidate_notes=payload.candidate_notes,
+        role_name=role_name,
+        company_name=company_name,
+    )
+
+    # Integrate candidate code into ongoing conversation session history
+    code_summary = (
+        f"[Candidate Submitted {payload.language.upper()} Code - {result['verdict']}]\n"
+        f"Time Complexity: {result['time_complexity']} | Space: {result['space_complexity']}\n"
+    )
+    if payload.candidate_notes:
+        code_summary += f"Candidate Explanation: {payload.candidate_notes}\n"
+    code_summary += f"```{payload.language}\n{payload.code}\n```"
+
+    if sess:
+        sess["answers"].append(code_summary)
+        sess["questions"].append(result["ai_response"])
+        sess["telemetry"].append({
+            "wpm": 150.0,
+            "filler_count": 0,
+            "type": "code_review",
+            "correctness": result["correctness_score"],
+            "time_complexity": result["time_complexity"],
+            "space_complexity": result["space_complexity"],
+        })
+
+    return CodeReviewResponse(
+        session_id=session_id,
+        ai_response=result["ai_response"],
+        time_complexity=result["time_complexity"],
+        space_complexity=result["space_complexity"],
+        correctness_score=result["correctness_score"],
+        verdict=result["verdict"],
+        edge_cases_missed=result["edge_cases_missed"],
+        optimizations=result["optimizations"],
+    )
+
+
+@router.post(
+    "/interviews/run-code",
+    response_model=CodeRunResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Run Code in Sandbox",
+    description="Executes code snippet safely and returns stdout output, runtime errors, and execution duration."
+)
+@router.post("/api/interviews/run-code", include_in_schema=False)
+async def run_interview_code(payload: CodeRunRequest):
+    run_result = engine.run_code_sandbox(
+        code=payload.code,
+        language=payload.language,
+        test_cases=payload.test_cases
+    )
+    return CodeRunResponse(
+        success=run_result["success"],
+        output=run_result["output"],
+        execution_time_ms=run_result["execution_time_ms"],
+    )
+
+
+class DSAPromptRequest(BaseModel):
+    difficulty: Optional[str] = Field("Medium", example="Medium")
+    company_name: Optional[str] = Field(None, example="Amazon")
+    role_name: Optional[str] = Field(None, example="Software Engineer")
+
+
+@router.get(
+    "/interviews/{session_id}/dsa-challenge",
+    summary="Get Dynamic LeetCode Challenge for Session",
+    description="Dynamically fetches or generates an authentic LeetCode problem tailored to the session difficulty, company, and role."
+)
+@router.get("/api/interviews/{session_id}/dsa-challenge", include_in_schema=False)
+async def get_session_dsa_challenge(
+    session_id: str,
+    difficulty: Optional[str] = None,
+    db: AsyncSession = Depends(get_async_session)
+):
+    sess = SESSIONS_STORE.get(session_id)
+    session_diff = difficulty or (sess.get("difficulty", "Medium") if sess else "Medium")
+    company_name = sess.get("company_name") if sess else "Tech Company"
+    role_name = sess.get("role_name") if sess else "Software Engineer"
+
+    problem = await engine.generate_dsa_problem(
+        difficulty=session_diff,
+        company_name=company_name,
+        role_name=role_name,
+    )
+    return problem
+
+
+@router.post(
+    "/interviews/dsa/generate",
+    summary="Generate Fresh LeetCode DSA Problem",
+    description="Generates an authentic LeetCode algorithmic problem matching the requested difficulty (Easy, Medium, Hard)."
+)
+@router.post("/api/interviews/dsa/generate", include_in_schema=False)
+async def generate_dsa_problem_endpoint(payload: DSAPromptRequest):
+    problem = await engine.generate_dsa_problem(
+        difficulty=payload.difficulty or "Medium",
+        company_name=payload.company_name,
+        role_name=payload.role_name,
+    )
+    return problem
 
 
 @router.post(
