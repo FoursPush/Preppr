@@ -1,5 +1,6 @@
 import os
-import logging # Reload trigger 2
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
@@ -33,6 +34,7 @@ from routers import (
     analytics,
     dashboard,
     stt,
+    tts,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -46,32 +48,41 @@ async def lifespan(app: FastAPI):
     """
     logger.info("Initializing Preppr API platform services...")
     
-    # 1. Initialize & synchronize PostgreSQL schema
+    # 1. Initialize & synchronize PostgreSQL schema with timeout
     try:
-        if "postgresql" in engine.url.drivername:
-            try:
-                async with engine.connect() as conn:
-                    await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-                    await conn.commit()
-            except Exception as ext_err:
-                logger.warning(f"Vector extension note: {ext_err}")
+        async def _init_db_schema():
+            if "postgresql" in engine.url.drivername:
+                try:
+                    async with engine.connect() as conn:
+                        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                        await conn.commit()
+                except Exception as ext_err:
+                    logger.warning(f"Vector extension note: {ext_err}")
 
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-            
-            # Ensure users table columns exist for existing databases
-            try:
-                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(255) DEFAULT 'Software Engineer';"))
-                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_level VARCHAR(100);"))
-                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(50);"))
-                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(1024);"))
-                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);"))
-                logger.info("PostgreSQL database tables and columns synchronized.")
-            except Exception as col_err:
-                logger.warning(f"Column synchronization note: {col_err}")
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+                
+                # Ensure users table columns exist for existing databases
+                try:
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(255) DEFAULT 'Software Engineer';"))
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_level VARCHAR(100);"))
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(50);"))
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(1024);"))
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);"))
+                    await conn.execute(text("ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS role_target VARCHAR(100);"))
+                    # Body-language (vision) telemetry columns for existing databases.
+                    await conn.execute(text("ALTER TABLE interview_answers ADD COLUMN IF NOT EXISTS vision_json JSON;"))
+                    await conn.execute(text("ALTER TABLE analytics_summaries ADD COLUMN IF NOT EXISTS vision_json JSON;"))
+                    await conn.execute(text("ALTER TABLE analytics_summaries ADD COLUMN IF NOT EXISTS avg_eye_contact FLOAT;"))
+                    logger.info("PostgreSQL database tables and columns synchronized.")
+                except Exception as col_err:
+                    logger.warning(f"Column synchronization note: {col_err}")
 
+        await asyncio.wait_for(_init_db_schema(), timeout=3.0)
+    except asyncio.TimeoutError:
+        logger.warning("PostgreSQL connection timed out after 3 seconds on startup. Continuing service initialization...")
     except Exception as db_init_err:
-        logger.error(f"PostgreSQL initialization failed on startup: {db_init_err}", exc_info=True)
+        logger.error(f"PostgreSQL initialization note on startup: {db_init_err}", exc_info=True)
 
     container.initialize()
     yield
@@ -112,6 +123,7 @@ app.include_router(reports.router)
 app.include_router(analytics.router)
 app.include_router(dashboard.router)
 app.include_router(stt.router)
+app.include_router(tts.router)
 
 
 @app.get("/", tags=["General"])

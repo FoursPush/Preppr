@@ -17,9 +17,6 @@ from routers.interviews import resolve_user_int_id
 from services.vector_service import VectorStoreManager
 from pipelines.resume_pipeline import ResumePipeline
 
-import fitz
-import httpx
-import json
 router = APIRouter(tags=["Resumes & Vector RAG"])
 vector_manager = VectorStoreManager()
 
