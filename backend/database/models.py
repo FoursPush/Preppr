@@ -138,6 +138,7 @@ class InterviewSession(Base):
     status: Mapped[str] = mapped_column(String(50), default="created", nullable=False)  # 'created', 'in_progress', 'completed'
     overall_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     company_target: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    role_target: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -194,6 +195,9 @@ class InterviewAnswer(Base):
     )
     transcript: Mapped[str] = mapped_column(Text, nullable=False)
     duration: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)  # seconds
+    # Per-turn body-language telemetry (eye contact, posture, expression, fidget, ...).
+    # On-device MediaPipe aggregates only — never raw video. Null when the camera was off.
+    vision_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
 
     # Relationships
     question: Mapped["InterviewQuestion"] = relationship("InterviewQuestion", back_populates="answers")
@@ -272,6 +276,10 @@ class AnalyticsSummary(Base):
     average_wpm: Mapped[float] = mapped_column(Float, nullable=False)
     total_filler_words: Mapped[int] = mapped_column(Integer, nullable=False)
     longest_silence: Mapped[float] = mapped_column(Float, nullable=False)
+    # Session-level body-language aggregate (averaged per-turn vision telemetry) and a
+    # headline eye-contact figure for the dashboard. Null when the camera was never used.
+    avg_eye_contact: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    vision_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
 
     # Relationships
     session: Mapped["InterviewSession"] = relationship("InterviewSession", back_populates="analytics")

@@ -44,6 +44,9 @@ class ResumeExtractionResponse(BaseModel):
     experience_years: Optional[Union[float, int, str]] = Field(None, description="Years of relevant work experience", example=5)
     skills: List[str] = Field(default_factory=list, description="Extracted technical and professional skills", example=["Python", "FastAPI", "PostgreSQL"])
     past_roles: List[Union[str, Dict[str, Any]]] = Field(default_factory=list, description="List of previous job titles or roles", example=["Senior Software Engineer", "Backend Developer"])
+    projects: List[str] = Field(default_factory=list, description="List of projects candidate has worked on", example=["AI Chatbot", "E-commerce Website"])
+    education: List[str] = Field(default_factory=list, description="List of education degrees and institutions", example=["B.S. Computer Science at State University (2020)"])
+    certifications: List[str] = Field(default_factory=list, description="List of certifications", example=["AWS Certified Solutions Architect"])
     suggested_interview_questions: List[str] = Field(
         default_factory=list,
         description="Suggested interview questions based on candidate profile",
@@ -227,7 +230,7 @@ def heuristic_parse_resume(raw_text: str) -> Dict[str, Any]:
     if not past_roles:
         for line in raw_lines:
             line_l = line.lower()
-            if any(rk in line_l for rk in role_keywords) and len(line) < 80 and not any(sh in line_l for sh in stop_headers):
+            if any(rk in line_l for rk in role_keywords) and len(line) < 80 and not any(sh in line_l for sh in stop_headers) and "virtual experience" not in line_l and "forage" not in line_l and "course" not in line_l and "bootcamp" not in line_l:
                 clean_role_line = re.sub(r'(?i)\b(fa-[a-z0-9-]+|envelope|phone|email|mail|linkedin|github|location|address)\b', '', line).strip(' :-|•\t,()[]')
                 if clean_role_line and clean_role_line.lower() not in {"envelope", "phone", "email", "skills"}:
                     past_roles.append(clean_role_line)
@@ -252,6 +255,69 @@ def heuristic_parse_resume(raw_text: str) -> Dict[str, Any]:
                 years = calculated_span
         elif len(distinct_years) == 1:
             years = 1
+
+    # 6.5 Identify Projects Section
+    projects = []
+    in_proj_section = False
+    proj_headers = ["projects", "academic projects", "personal projects", "open source"]
+    
+    for line in raw_lines:
+        line_lower = line.lower().strip(" :#-_")
+        if any(line_lower == h or line_lower.startswith(h + " ") for h in proj_headers):
+            in_proj_section = True
+            continue
+        elif in_proj_section and any(line_lower == sh or line_lower.startswith(sh + " ") for sh in stop_headers + section_headers):
+            in_proj_section = False
+            break
+
+        if in_proj_section and len(line) < 150 and line.strip() and "|" in line:
+            clean_proj_line = re.sub(r'(?i)\b(fa-[a-z0-9-]+|envelope|phone|email|mail|linkedin|github|location|address)\b', '', line).strip(' :-|•\t,()[]')
+            if clean_proj_line:
+                projects.append(clean_proj_line)
+                if len(projects) >= 6:
+                    break
+
+    # 6.6 Identify Education Section
+    education = []
+    in_edu_section = False
+    edu_headers = ["education", "academic background", "academics"]
+    
+    for line in raw_lines:
+        line_lower = line.lower().strip(" :#-_")
+        if any(line_lower == h or line_lower.startswith(h + " ") for h in edu_headers):
+            in_edu_section = True
+            continue
+        elif in_edu_section and any(line_lower == sh or line_lower.startswith(sh + " ") for sh in stop_headers + section_headers + proj_headers):
+            in_edu_section = False
+            break
+
+        if in_edu_section and len(line) < 120 and line.strip():
+            clean_edu = re.sub(r'(?i)\b(fa-[a-z0-9-]+|envelope|phone|email|mail|linkedin|github|location|address)\b', '', line).strip(' :-|•\t,()[]')
+            if clean_edu and any(k in clean_edu.lower() for k in ["bachelor", "master", "phd", "b.e", "b.tech", "university", "institute", "college", "school"]):
+                education.append(clean_edu)
+                if len(education) >= 3:
+                    break
+
+    # 6.7 Identify Certifications Section
+    certifications = []
+    in_cert_section = False
+    cert_headers = ["certifications", "certificates", "awards", "achievements"]
+    
+    for line in raw_lines:
+        line_lower = line.lower().strip(" :#-_")
+        if any(line_lower == h or line_lower.startswith(h + " ") for h in cert_headers):
+            in_cert_section = True
+            continue
+        elif in_cert_section and any(line_lower == sh or line_lower.startswith(sh + " ") for sh in stop_headers + section_headers + proj_headers + edu_headers):
+            in_cert_section = False
+            break
+
+        if in_cert_section and len(line) < 120 and line.strip():
+            clean_cert = re.sub(r'(?i)\b(fa-[a-z0-9-]+|envelope|phone|email|mail|linkedin|github|location|address)\b', '', line).strip(' :-|•\t,()[]')
+            if clean_cert:
+                certifications.append(clean_cert)
+                if len(certifications) >= 5:
+                    break
 
     # 7. Generate Relevant Interview Questions strictly matching candidate's real skills
     suggested_questions = []
@@ -278,6 +344,9 @@ def heuristic_parse_resume(raw_text: str) -> Dict[str, Any]:
         "experience_years": years,
         "skills": found_skills[:20],
         "past_roles": past_roles,
+        "projects": projects,
+        "education": education,
+        "certifications": certifications,
         "suggested_interview_questions": suggested_questions[:4]
     }
 
@@ -325,7 +394,9 @@ async def upload_pdf_resume(
     # 2. Structured Prompt for LLM parsing
     prompt = (
         "You are an expert ATS resume parsing system. Analyze the candidate resume text below and extract structured information.\n"
-        "DO NOT invent or hallucinate any information. Clean any font icon words like 'envelope', 'phone', 'globe'. If the candidate has no past employment history, return an empty array for past_roles.\n\n"
+        "DO NOT invent or hallucinate any information. Clean any font icon words like 'envelope', 'phone', 'globe'.\n"
+        "- If the candidate has no past employment history, return an empty array for past_roles.\n"
+        "- The candidate may have personal or academic projects (e.g., 'HemiSphere', 'RentSphere', 'PassVault', 'TaxKar'). You MUST extract ALL of them into the 'projects' array.\n\n"
         "Return ONLY a valid JSON object matching this schema:\n"
         "{\n"
         '  "candidate_name": "Full Name",\n'
@@ -334,6 +405,9 @@ async def upload_pdf_resume(
         '  "experience_years": 0,\n'
         '  "skills": ["Skill 1", "Skill 2"],\n'
         '  "past_roles": ["Role at Company (Year)"],\n'
+        '  "projects": ["Project Name - Description or Tech Stack"],\n'
+        '  "education": ["Degree at Institution (Year)"],\n'
+        '  "certifications": ["Certification Name"],\n'
         '  "suggested_interview_questions": ["Question 1", "Question 2"]\n'
         "}\n\n"
         f"--- RESUME TEXT ---\n{cleaned_text[:4000]}"
@@ -345,7 +419,7 @@ async def upload_pdf_resume(
     try:
         llm_result = await call_openai_chat(
             messages=[
-                {"role": "system", "content": "You are a specialized ATS resume parser. Output strict JSON only. Do not hallucinate experiences. Do not output icon names like envelope."},
+                {"role": "system", "content": "You are a specialized ATS resume parser. Output strict JSON only. Do not hallucinate experiences. Extract all personal/academic projects meticulously."},
                 {"role": "user", "content": prompt}
             ],
             model="gpt-4o-mini",
@@ -400,6 +474,39 @@ async def upload_pdf_resume(
         if r_str and len(r_str) > 3 and r_str.lower() not in {"envelope", "phone", "email", "mail", "contact", "linkedin", "github", "location", "address"}:
             clean_roles.append(r_str)
 
+    # Sanitize projects
+    raw_projects = parsed_json.get("projects") or []
+    clean_projects = []
+    for proj in raw_projects:
+        if isinstance(proj, dict):
+            p_str = f"{proj.get('title', proj.get('name', ''))} {proj.get('description', '')}".strip()
+        else:
+            p_str = str(proj)
+        p_str = re.sub(r'(?i)\b(fa-[a-z0-9-]+|envelope|phone|email|mail|contact|mobile|github|linkedin|location|address)\b', '', p_str).strip(' :-|•\t,')
+        if p_str and len(p_str) > 3:
+            clean_projects.append(p_str)
+
+    # Sanitize education
+    raw_edu = parsed_json.get("education") or []
+    clean_edu = []
+    for edu in raw_edu:
+        if isinstance(edu, dict):
+            e_str = f"{edu.get('degree', '')} {edu.get('institution', '')} {edu.get('year', '')}".strip()
+        else:
+            e_str = str(edu)
+        e_str = re.sub(r'(?i)\b(fa-[a-z0-9-]+|envelope|phone|email|mail|contact|mobile|github|linkedin|location|address)\b', '', e_str).strip(' :-|•\t,')
+        if e_str and len(e_str) > 3:
+            clean_edu.append(e_str)
+
+    # Sanitize certifications
+    raw_certs = parsed_json.get("certifications") or []
+    clean_certs = []
+    for cert in raw_certs:
+        c_str = str(cert)
+        c_str = re.sub(r'(?i)\b(fa-[a-z0-9-]+|envelope|phone|email|mail|contact|mobile|github|linkedin|location|address)\b', '', c_str).strip(' :-|•\t,')
+        if c_str and len(c_str) > 3:
+            clean_certs.append(c_str)
+
     # Sanitize questions
     raw_questions = parsed_json.get("suggested_interview_questions") or []
     clean_questions = []
@@ -415,5 +522,8 @@ async def upload_pdf_resume(
         experience_years=parsed_json.get("experience_years", 0),
         skills=clean_skills,
         past_roles=clean_roles,
+        projects=clean_projects,
+        education=clean_edu,
+        certifications=clean_certs,
         suggested_interview_questions=clean_questions
     )

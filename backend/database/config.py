@@ -18,6 +18,7 @@ engine = create_async_engine(
     DATABASE_URL,
     echo=os.getenv("SQL_ECHO", "false").lower() == "true",
     future=True,
+    connect_args={"timeout": 5} if "asyncpg" in DATABASE_URL else {},
 )
 
 # Async Session Factory
