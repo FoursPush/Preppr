@@ -2,97 +2,107 @@
 
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { Mic, BarChart3, FileText, Sparkles, LogOut, User, PlusCircle } from "lucide-react";
+import { Mic, BarChart3, FileText, Sparkles, LogOut, Plus, ArrowUpRight } from "lucide-react";
 
 export default function Navbar() {
   const { user, isLoggedIn, isLoading, logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-dark-900/80 border-b border-white/10 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Left Brand */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
-            <Mic className="w-5 h-5 text-white" />
+    <header className="fixed top-5 sm:top-6 inset-x-0 z-50 flex justify-center px-4 sm:px-6 pointer-events-none">
+      <nav className="pointer-events-auto flex items-center gap-2 sm:gap-4 md:gap-5 bg-nvg-surface/95 border border-white/15 rounded-full px-3.5 sm:px-5 py-2.5 sm:py-3 shadow-2xl backdrop-blur-2xl transition-all">
+        {/* Left Brand Badge (NVG8 Orange Pill) */}
+        <Link href="/" className="flex items-center gap-2.5 group pr-1 sm:pr-2">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-nvg-orange flex items-center justify-center text-white font-extrabold shadow-neo-sm group-hover:rotate-12 transition-transform">
+            <Mic className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
-          <span className="font-bold text-xl tracking-tight text-white flex items-center gap-1.5">
-            Preppr <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-300">AI</span>
+          <span className="font-heading font-extrabold text-base sm:text-lg tracking-tight text-white hidden xs:inline-block">
+            Preppr<span className="text-white/60 text-xs sm:text-sm ml-0.5">.ai</span>
           </span>
         </Link>
 
-        {/* Center Nav Links - ONLY shown when logged in */}
-        {!isLoading && isLoggedIn && (
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-300">
-            <Link href="/dashboard" className="hover:text-white transition-colors flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-brand-500" /> Dashboard
-            </Link>
-            <Link href="/resume" className="hover:text-white transition-colors flex items-center gap-2">
-              <FileText className="w-4 h-4 text-cyan-400" /> Resume & Profile
-            </Link>
-            <Link href="/interview/setup" className="hover:text-white transition-colors flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" /> Start Mock
-            </Link>
-          </nav>
-        )}
+        {/* Center Nav Links */}
+        <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-heading font-bold text-gray-300">
+          <Link
+            href="/interview/setup"
+            className="px-3 sm:px-4 py-2 rounded-full hover:text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4 text-nvg-yellow" />
+            <span className="hidden sm:inline">Mock</span> Setup
+          </Link>
 
-        {/* Right Actions */}
-        <div className="flex items-center gap-3">
+          <Link
+            href="/resume"
+            className="px-3 sm:px-4 py-2 rounded-full hover:text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4 text-nvg-purple" />
+            <span>Resume RAG</span>
+          </Link>
+
+          {isLoggedIn && (
+            <Link
+              href="/dashboard"
+              className="px-3 sm:px-4 py-2 rounded-full hover:text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+            >
+              <BarChart3 className="w-4 h-4 text-nvg-yellow" />
+              <span>Dashboard</span>
+            </Link>
+          )}
+        </div>
+
+        {/* Right Action Buttons */}
+        <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-white/15">
           {isLoading ? (
-            <div className="w-20 h-8 rounded-lg bg-white/5 animate-pulse" />
+            <div className="w-20 h-9 rounded-full bg-white/10 animate-pulse" />
           ) : isLoggedIn && user ? (
-            /* Logged In View */
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Link
                 href="/interview/setup"
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 rounded-lg shadow-md shadow-brand-500/20 transition-all transform hover:-translate-y-0.5"
+                className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-nvg-lime !text-black font-heading font-extrabold text-xs sm:text-sm shadow-neo-lime hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
               >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>New Interview</span>
+                <Plus className="w-4 h-4 stroke-[3] text-black" />
+                <span className="hidden sm:inline">Start</span> Practice
               </Link>
 
-              {/* User Profile Pill */}
-              <div className="flex items-center gap-2 pl-2 sm:border-l border-white/10">
-                <div className="w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center text-brand-300 font-bold text-xs uppercase overflow-hidden">
-                  {user.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
-                  ) : (
-                    user.name.charAt(0) || "U"
-                  )}
-                </div>
-                <div className="hidden lg:block text-left">
-                  <div className="text-xs font-bold text-white leading-tight truncate max-w-[120px]">{user.name}</div>
-                  <div className="text-[10px] text-gray-400 truncate max-w-[120px]">{user.role || "Candidate"}</div>
-                </div>
-
-                <button
-                  onClick={logout}
-                  title="Sign Out"
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors ml-1"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+              {/* User Avatar */}
+              <div
+                title={`${user.name} (${user.email})`}
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-nvg-purple text-white flex items-center justify-center text-xs sm:text-sm font-bold uppercase overflow-hidden border border-white/20 shadow-sm"
+              >
+                {user.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  user.name.charAt(0) || "U"
+                )}
               </div>
+
+              <button
+                onClick={logout}
+                title="Sign Out"
+                className="p-2 rounded-full text-gray-400 hover:text-red-400 hover:bg-white/10 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           ) : (
-            /* Not Logged In View - ONLY show Get Started and Sign In */
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Link
                 href="/login"
-                className="px-3.5 py-1.5 text-xs sm:text-sm font-medium text-gray-200 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-colors flex items-center gap-1.5"
+                className="px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-heading font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
               >
-                <User className="w-3.5 h-3.5" /> Sign In
+                Sign In
               </Link>
               <Link
                 href="/register"
-                className="px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 rounded-lg shadow-md shadow-brand-500/20 transition-all transform hover:-translate-y-0.5"
+                className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-nvg-lime !text-black font-heading font-extrabold text-xs sm:text-sm shadow-neo-lime hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
               >
-                Get Started Free
+                <span>Sign Up</span>
+                <ArrowUpRight className="w-4 h-4 stroke-[2.5] text-black" />
               </Link>
             </div>
           )}
         </div>
-      </div>
+      </nav>
     </header>
   );
 }

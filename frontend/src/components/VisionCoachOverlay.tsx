@@ -27,24 +27,22 @@ export default function VisionCoachOverlay({ monitor, showConsent, onEnable, onD
 
   return (
     <>
-      {/* Floating self-view. The <video> stays mounted so the hook's ref persists; the tile is
-          shown only while starting or active (no detection runs when idle). Mirrored for a
-          natural selfie view — MediaPipe runs on the true, un-mirrored pixels. */}
+      {/* Floating self-view */}
       <div
-        className={`fixed right-4 top-24 z-30 transition-opacity ${showTile && !minimized ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`fixed right-4 top-24 z-30 transition-opacity font-body ${showTile && !minimized ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         aria-hidden={!showTile || minimized}
       >
-        <div className="w-56 rounded-2xl overflow-hidden border border-white/15 bg-dark-900/90 backdrop-blur-xl shadow-2xl">
-          <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/10">
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white">
-              <span className={`w-1.5 h-1.5 rounded-full ${enabled ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-              Camera coach
+        <div className="w-60 rounded-squircle overflow-hidden border border-white/15 bg-nvg-surface/90 backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/10">
+            <span className="flex items-center gap-1.5 text-xs font-heading font-bold text-white">
+              <span className={`w-2 h-2 rounded-full ${enabled ? "bg-nvg-lime animate-pulse" : "bg-nvg-yellow"}`} />
+              Camera Coach
             </span>
             <div className="flex items-center gap-1">
-              <button onClick={() => setMinimized(true)} title="Minimize" className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white">
+              <button onClick={() => setMinimized(true)} title="Minimize" className="p-1 rounded-full hover:bg-white/10 text-gray-400 hover:text-white">
                 <Minus className="w-3.5 h-3.5" />
               </button>
-              <button onClick={disable} title="Turn off camera" className="p-1 rounded hover:bg-red-500/20 text-gray-400 hover:text-red-300">
+              <button onClick={disable} title="Turn off camera" className="p-1 rounded-full hover:bg-red-500/20 text-gray-400 hover:text-red-300">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -52,77 +50,81 @@ export default function VisionCoachOverlay({ monitor, showConsent, onEnable, onD
           <div className="relative bg-black aspect-[4/3]">
             <video ref={videoRef} muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ transform: "scaleX(-1)" }} />
             {starting && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-brand-300 text-[11px]">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {status === "requesting" ? "Requesting camera…" : "Warming up coach…"}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white text-xs font-heading font-bold">
+                <Loader2 className="w-5 h-5 animate-spin text-nvg-yellow" />
+                {status === "requesting" ? "Requesting camera…" : "Calibrating telemetry…"}
               </div>
             )}
             {enabled && !starting && !badge.faceVisible && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-amber-200 text-[11px] text-center px-3">
-                Center yourself in the frame
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-nvg-yellow text-xs text-center px-3 font-heading font-bold">
+                Center yourself in frame
               </div>
             )}
           </div>
-          <div className="flex items-center justify-between px-2.5 py-2 text-[11px]">
-            <span className="flex items-center gap-1 text-violet-200">
-              <Eye className="w-3.5 h-3.5" /> {badge.eyeContactPct ?? "—"}% eye
+          <div className="flex items-center justify-between px-3.5 py-2.5 text-xs font-heading font-bold">
+            <span className="flex items-center gap-1.5 text-nvg-purple">
+              <Eye className="w-3.5 h-3.5" /> {badge.eyeContactPct ?? "—"}% Eye
             </span>
-            <span className="text-fuchsia-200">{postureLabel(badge.postureStability)} posture</span>
+            <span className="text-nvg-green">{postureLabel(badge.postureStability)} Posture</span>
           </div>
-          <div className="px-2.5 pb-2 text-[9px] text-gray-500 leading-tight">
-            On your device only · summary numbers saved · practice feedback, not a judgment
+          <div className="px-3.5 pb-2.5 text-[10px] text-gray-500 leading-tight font-body">
+            On-device vision analysis · No raw video leaves your machine
           </div>
         </div>
       </div>
 
-      {/* Minimized pill — keeps the coach running while out of the way */}
+      {/* Minimized pill */}
       {showTile && minimized && (
         <button
           onClick={() => setMinimized(false)}
           title="Expand camera coach"
-          className="fixed right-4 top-24 z-30 flex items-center gap-2 px-3 py-2 rounded-xl bg-dark-900/90 border border-white/15 backdrop-blur-xl shadow-xl text-[11px] text-white hover:bg-dark-800 transition-all"
+          className="fixed right-4 top-24 z-30 flex items-center gap-2 px-3.5 py-2 rounded-full bg-nvg-surface border border-white/15 backdrop-blur-xl shadow-xl text-xs text-white hover:bg-nvg-off-black transition-all font-heading font-bold"
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${enabled ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-          <Eye className="w-3.5 h-3.5 text-violet-300" /> {badge.eyeContactPct ?? "—"}%
+          <span className={`w-2 h-2 rounded-full ${enabled ? "bg-nvg-green animate-pulse" : "bg-nvg-yellow"}`} />
+          <Eye className="w-3.5 h-3.5 text-nvg-purple" /> {badge.eyeContactPct ?? "—"}%
           <Maximize2 className="w-3 h-3 text-gray-400" />
         </button>
       )}
+
+      {/* Consent Modal */}
       {showConsent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="max-w-md w-full p-6 rounded-2xl bg-dark-900 border border-white/10 shadow-2xl">
-            <div className="flex items-center gap-2 text-brand-300 mb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-body">
+          <div className="max-w-md w-full p-8 rounded-squircle bg-nvg-surface border border-white/10 shadow-2xl">
+            <div className="flex items-center gap-2 text-nvg-green mb-3">
               <ShieldCheck className="w-5 h-5" />
-              <h3 className="font-bold text-white">Turn on the camera coach?</h3>
+              <h3 className="font-heading font-bold text-white text-lg">Turn on on-device camera coach?</h3>
             </div>
-            <p className="text-sm text-gray-300 leading-relaxed">
-              Preppr can use your camera to coach your delivery — eye contact, posture, and expressions.
-              Video is processed <span className="text-white font-semibold">entirely on your device</span> and
-              never uploaded; only summary numbers (like &ldquo;78% eye contact&rdquo;) are saved to your report.
-              You can turn it off anytime.
+            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed font-body">
+              Preppr analyzes your delivery — eye contact stability, posture steadiness, and composure.
+              Video frames are processed <span className="text-white font-bold">100% locally in your browser</span> and
+              never uploaded over the network; only summary statistics are saved to your score report.
             </p>
-            <p className="text-xs text-gray-500 mt-2">
-              This is practice feedback to help you improve — not a judgment of you.
-            </p>
-            <div className="mt-5 flex items-center justify-end gap-3">
-              <button onClick={onDismiss} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold transition-all">
+            <div className="mt-6 flex items-center justify-end gap-3 font-heading font-bold">
+              <button
+                onClick={onDismiss}
+                className="px-5 py-2.5 rounded-full bg-nvg-off-black hover:bg-white/10 text-gray-300 text-xs transition-all"
+              >
                 Not now
               </button>
-              <button onClick={onEnable} className="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-sm font-bold flex items-center gap-2 transition-all">
-                <Video className="w-4 h-4" /> Enable camera
+              <button
+                onClick={onEnable}
+                className="px-5 py-2.5 rounded-full bg-nvg-lime hover:brightness-105 !text-black text-xs font-extrabold shadow-neo-lime flex items-center gap-2 transition-all"
+              >
+                <Video className="w-4 h-4 text-black" /> Enable camera
               </button>
             </div>
           </div>
         </div>
       )}
       {(status === "denied" || status === "error" || status === "unsupported") && (
-        <div className="fixed bottom-24 right-4 z-40 max-w-xs p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2">
+        <div className="fixed bottom-24 right-4 z-40 max-w-xs p-3.5 rounded-2xl bg-nvg-orange/15 border border-nvg-orange/30 text-nvg-orange text-xs flex items-start gap-2 font-body">
           <VideoOff className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>
             {status === "denied"
-              ? "Camera permission was blocked. The interview continues without the camera coach — enable it in your browser's site settings to use it."
+              ? "Camera permission was blocked. The interview continues without the camera coach — enable it in browser settings anytime."
               : status === "unsupported"
-              ? "This browser doesn't support camera capture. The interview continues without the camera coach."
-              : "Couldn't start the camera coach. The interview continues normally; you can try again."}
+              ? "Browser doesn't support camera capture. Interview continues without the camera coach."
+              : "Couldn't start camera coach. Interview continues normally."}
           </span>
         </div>
       )}
