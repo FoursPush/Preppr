@@ -36,10 +36,10 @@ const ROLE_OPTIONS = [
 ];
 
 const EXPERIENCE_LEVELS = [
-  { id: "entry", label: "Entry Level / New Grad", desc: "0-1 yrs" },
-  { id: "mid", label: "Mid-Level Engineer", desc: "2-4 yrs" },
-  { id: "senior", label: "Senior Engineer", desc: "5-8 yrs" },
-  { id: "staff", label: "Staff / Lead / Principal", desc: "8+ yrs" },
+  { id: "entry", label: "Entry Level", desc: "0-1 yrs" },
+  { id: "mid", label: "Mid-Level", desc: "2-4 yrs" },
+  { id: "senior", label: "Senior", desc: "5-8 yrs" },
+  { id: "staff", label: "Staff / Lead", desc: "8+ yrs" },
 ];
 
 const TARGET_COMPANIES_LIST = [
@@ -135,7 +135,6 @@ export default function RegisterPage() {
         targetCompanies: selectedCompanies,
       });
 
-      // DO NOT automatically sign in; trigger success popup modal
       setRegisteredEmail(email.trim());
       setShowSuccessModal(true);
     } catch (err: any) {
@@ -177,7 +176,7 @@ export default function RegisterPage() {
             console.error("Google Auth error:", err);
             setError("Google sign-up was cancelled or encountered an error.");
             setOauthLoading(null);
-          }
+          },
         });
 
         tokenClient.requestAccessToken();
@@ -195,7 +194,6 @@ export default function RegisterPage() {
       };
 
       const res = await oauthLogin(provider, profile);
-
       setRegisteredEmail(res.email || targetEmail);
       setShowSuccessModal(true);
     } catch (err: any) {
@@ -210,39 +208,38 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[90vh] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden flex items-center justify-center">
+    <div className="min-h-screen bg-nvg-off-black text-nvg-off-white font-body pt-32 sm:pt-36 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden flex items-center justify-center">
       {/* Background glow accents */}
-      <div className="absolute top-10 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-10 left-1/4 w-96 h-96 bg-nvg-lime/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-nvg-purple/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* SUCCESS POPUP MODAL */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-md p-8 rounded-3xl bg-dark-900 border border-emerald-500/40 shadow-2xl shadow-emerald-500/10 text-center relative overflow-hidden transform scale-100 transition-all">
-            {/* Top decorative glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="w-16 h-16 rounded-3xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto mb-5 shadow-lg shadow-emerald-500/20 animate-bounce">
-              <Check className="w-8 h-8 stroke-[3]" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-md p-8 rounded-squircle bg-nvg-surface border border-nvg-lime/40 shadow-neo-lime text-center relative overflow-hidden">
+            <div className="w-16 h-16 rounded-full bg-nvg-lime !text-black flex items-center justify-center mx-auto mb-5 shadow-lg">
+              <Check className="w-8 h-8 stroke-[3] text-black" />
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold mb-3">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>PostgreSQL Record Created</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-nvg-lime !text-black text-xs font-heading font-extrabold mb-3 shadow-neo-lime">
+              <Sparkles className="w-3.5 h-3.5 text-black" />
+              <span>PostgreSQL Account Initialized</span>
             </div>
 
-            <h3 className="text-2xl font-extrabold text-white tracking-tight">Account Created Successfully!</h3>
-            
-            <p className="text-sm text-gray-300 mt-2.5 leading-relaxed">
-              Your candidate account for <span className="text-white font-semibold">{name || "Candidate"}</span> ({registeredEmail}) has been registered in the database.
+            <h3 className="text-2xl font-heading font-extrabold text-white tracking-tight">
+              Registration Successful!
+            </h3>
+
+            <p className="text-xs text-gray-300 mt-2 leading-relaxed">
+              Your candidate profile for <span className="text-white font-bold">{name || "Candidate"}</span> ({registeredEmail}) has been securely saved.
             </p>
 
-            <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 mt-5 text-xs text-gray-400 text-left">
-              <p className="flex items-center gap-2 text-emerald-400 font-semibold mb-1">
-                <CheckCircle2 className="w-4 h-4" /> Next Step: Sign In
+            <div className="p-4 rounded-2xl bg-nvg-off-black/60 border border-white/10 mt-5 text-xs text-gray-400 text-left">
+              <p className="flex items-center gap-2 text-nvg-orange font-heading font-bold mb-1">
+                <CheckCircle2 className="w-4 h-4 text-nvg-orange" /> Sign In to Proceed
               </p>
-              <p className="text-[11px] text-gray-400">
-                Please enter your credentials on the login page to access your live interview dashboard and speech telemetry.
+              <p className="text-[11px] text-gray-400 font-body">
+                Log in to calibrate mock interview parameters and stream live voice turns.
               </p>
             </div>
 
@@ -250,108 +247,98 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={proceedToLogin}
-                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-brand-600 hover:from-emerald-500 hover:to-brand-500 text-white font-bold text-sm shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 group cursor-pointer"
+                className="w-full py-4 rounded-full bg-nvg-lime hover:brightness-105 !text-black font-heading font-extrabold text-sm shadow-neo-lime transition-all flex items-center justify-center gap-2"
               >
-                <LogIn className="w-4 h-4" />
-                <span>Proceed to Sign In Now</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <LogIn className="w-4 h-4 text-black" />
+                <span className="text-black font-extrabold">Sign In Now</span>
+                <ArrowRight className="w-4 h-4 text-black" />
               </button>
 
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>Redirecting automatically in <strong className="text-emerald-400">{countdown}s</strong>...</span>
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-500 font-heading">
+                <span className="w-2 h-2 rounded-full bg-nvg-orange animate-ping" />
+                <span>Redirecting in <strong className="text-nvg-orange">{countdown}s</strong>...</span>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
-        
-        {/* Left Hero & Feature Highlights (5 cols on lg) */}
-        <div className="lg:col-span-5 space-y-6 pt-4">
+      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
+        {/* Left Feature Column (5 cols) */}
+        <div className="lg:col-span-5 space-y-6 pt-2">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/15 border border-brand-500/30 text-brand-300 text-xs font-semibold mb-4">
-              <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-              <span>Get Started in Under 60 Seconds</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-nvg-lime !text-black text-xs font-heading font-extrabold uppercase tracking-wider mb-4 shadow-neo-lime">
+              <Sparkles className="w-3.5 h-3.5 text-black" />
+              <span>Fast Track Onboarding</span>
             </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight leading-tight">
-              Level Up Your Interview Performance with <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-indigo-300 to-cyan-400">Preppr AI</span>
+            <h1 className="text-3xl sm:text-5xl font-heading font-extrabold text-white tracking-tight leading-tight">
+              Master the <span className="text-nvg-orange">interview</span> craft.
             </h1>
-            <p className="text-sm text-gray-400 mt-3 leading-relaxed">
-              Experience real-time interactive voice mock interviews with live acoustic and behavioral feedback tailored to FAANG & top tech standards.
+            <p className="text-xs sm:text-sm text-gray-400 mt-3 font-body leading-relaxed">
+              Experience real-time interactive voice mock interviews with live acoustic and behavioral feedback calibrated to FAANG and high-growth benchmarks.
             </p>
           </div>
 
-          <div className="space-y-3.5 pt-2">
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-start gap-3.5 hover:border-brand-500/30 transition-all">
-              <div className="w-9 h-9 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0 mt-0.5">
-                <Zap className="w-4 h-4" />
+          <div className="space-y-3 pt-2">
+            <div className="squircle-card p-4 bg-nvg-surface/70 border border-white/5 flex items-start gap-3.5">
+              <div className="w-9 h-9 rounded-full bg-nvg-lime !text-black flex items-center justify-center font-extrabold text-xs shrink-0 mt-0.5">
+                ⚡
               </div>
               <div>
-                <h3 className="text-xs font-bold text-white">Sub-300ms Conversational AI</h3>
+                <h3 className="text-xs font-heading font-bold text-white">Sub-300ms Conversational AI</h3>
                 <p className="text-[11px] text-gray-400 mt-0.5">Real-time voice agent with natural interruptions and contextual follow-ups.</p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-start gap-3.5 hover:border-cyan-500/30 transition-all">
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
-                <Award className="w-4 h-4" />
+            <div className="squircle-card p-4 bg-nvg-surface/70 border border-white/5 flex items-start gap-3.5">
+              <div className="w-9 h-9 rounded-full bg-nvg-purple text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                ✦
               </div>
               <div>
-                <h3 className="text-xs font-bold text-white">Comprehensive 6-Pillar Scorecard</h3>
-                <p className="text-[11px] text-gray-400 mt-0.5">Deep scoring across technical depth, STAR structure, pace, fillers, and clarity.</p>
+                <h3 className="text-xs font-heading font-bold text-white">6-Pillar Evaluation Rubric</h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">Granular scoring across technical depth, STAR structure, pace, fillers, and clarity.</p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-start gap-3.5 hover:border-emerald-500/30 transition-all">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
-                <ShieldCheck className="w-4 h-4" />
+            <div className="squircle-card p-4 bg-nvg-surface/70 border border-white/5 flex items-start gap-3.5">
+              <div className="w-9 h-9 rounded-full bg-nvg-orange text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                🎯
               </div>
               <div>
-                <h3 className="text-xs font-bold text-white">ATS Resume & Job Alignment</h3>
-                <p className="text-[11px] text-gray-400 mt-0.5">Upload your resume chunks to generate hyper-realistic personalized questions.</p>
+                <h3 className="text-xs font-heading font-bold text-white">ATS & Persona Alignment</h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">Upload your resume to generate hyper-realistic personalized behavioral inquiries.</p>
               </div>
             </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-brand-900/30 to-indigo-950/30 border border-brand-500/20">
-            <div className="flex items-center gap-2 text-xs font-semibold text-brand-300">
-              <CheckCircle2 className="w-4 h-4 text-brand-400" />
-              <span>100% Free Candidate Access</span>
-            </div>
-            <p className="text-[11px] text-gray-400 mt-1">Includes instant PDF report downloads and full dashboard analytics.</p>
           </div>
         </div>
 
-        {/* Right Registration Card (7 cols on lg) */}
+        {/* Right Form Card (7 cols) */}
         <div className="lg:col-span-7">
-          <div className="p-7 sm:p-8 rounded-3xl bg-dark-900/85 border border-white/10 backdrop-blur-2xl shadow-2xl relative">
+          <div className="squircle-card p-6 sm:p-8 bg-nvg-surface/90 border border-white/10 backdrop-blur-2xl shadow-2xl relative">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
               <div>
-                <h2 className="text-xl font-bold text-white">Create Candidate Account</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Set up your candidate profile and target preferences</p>
+                <h2 className="text-xl font-heading font-extrabold text-white">Create Candidate Profile</h2>
+                <p className="text-xs text-gray-400 mt-0.5 font-body">Set up your credentials and target companies</p>
               </div>
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-                <User className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-full bg-nvg-lime !text-black flex items-center justify-center font-heading font-extrabold text-sm">
+                ✦
               </div>
             </div>
 
             {error && (
-              <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                {error}
+              <div className="mb-5 p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                <span>{error}</span>
               </div>
             )}
 
-            {/* Social OAuth Sign Up */}
+            {/* Social OAuth Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-              {/* Google Button */}
               <button
                 type="button"
                 onClick={() => handleOAuthSignUp("google")}
                 disabled={loading || oauthLoading !== null}
-                className="py-2.5 px-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-medium text-xs transition-all duration-200 flex items-center justify-center gap-2.5 hover:border-white/30 group disabled:opacity-50"
+                className="py-3 px-3.5 rounded-full bg-nvg-off-black border border-white/15 hover:border-white/30 text-white font-heading font-bold text-xs transition-all flex items-center justify-center gap-2.5 disabled:opacity-50"
               >
                 {oauthLoading === "google" ? (
                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -378,17 +365,16 @@ export default function RegisterPage() {
                 <span>Sign up with Google</span>
               </button>
 
-              {/* GitHub Button */}
               <button
                 type="button"
                 onClick={() => handleOAuthSignUp("github")}
                 disabled={loading || oauthLoading !== null}
-                className="py-2.5 px-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-medium text-xs transition-all duration-200 flex items-center justify-center gap-2.5 hover:border-white/30 group disabled:opacity-50"
+                className="py-3 px-3.5 rounded-full bg-nvg-off-black border border-white/15 hover:border-white/30 text-white font-heading font-bold text-xs transition-all flex items-center justify-center gap-2.5 disabled:opacity-50"
               >
                 {oauthLoading === "github" ? (
                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <Github className="w-4 h-4 text-white group-hover:scale-110 transition-transform shrink-0" />
+                  <Github className="w-4 h-4 text-white" />
                 )}
                 <span>Sign up with GitHub</span>
               </button>
@@ -397,7 +383,7 @@ export default function RegisterPage() {
             {/* Divider */}
             <div className="relative flex items-center justify-center mb-5">
               <div className="border-t border-white/10 w-full" />
-              <span className="bg-dark-900 px-3 text-[11px] text-gray-500 uppercase tracking-wider font-semibold">
+              <span className="bg-nvg-surface px-3 text-[10px] text-gray-500 uppercase tracking-widest font-heading font-bold">
                 Or with details
               </span>
               <div className="border-t border-white/10 w-full" />
@@ -405,33 +391,36 @@ export default function RegisterPage() {
 
             {/* Form */}
             <form onSubmit={handleRegister} className="space-y-4">
-              {/* Name & Email Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1">Full Name</label>
+                  <label className="block text-xs font-heading font-bold text-gray-300 mb-1 uppercase tracking-wider">
+                    Full Name
+                  </label>
                   <div className="relative">
-                    <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <User className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-dark-800/80 border border-white/10 rounded-xl py-2 pl-9 pr-3 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 text-xs transition-colors"
-                      placeholder="e.g. Soham Dave"
+                      className="w-full bg-nvg-off-black border border-white/10 rounded-2xl py-2.5 pl-10 pr-3 text-white placeholder-gray-500 focus:outline-none focus:border-nvg-lime text-xs transition-colors"
+                      placeholder="e.g. Maya Patel"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1">Email Address</label>
+                  <label className="block text-xs font-heading font-bold text-gray-300 mb-1 uppercase tracking-wider">
+                    Email Address
+                  </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-dark-800/80 border border-white/10 rounded-xl py-2 pl-9 pr-3 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 text-xs transition-colors"
+                      className="w-full bg-nvg-off-black border border-white/10 rounded-2xl py-2.5 pl-10 pr-3 text-white placeholder-gray-500 focus:outline-none focus:border-nvg-lime text-xs transition-colors"
                       placeholder="candidate@example.com"
                     />
                   </div>
@@ -441,80 +430,71 @@ export default function RegisterPage() {
               {/* Password */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-gray-300">Create Password</label>
+                  <label className="block text-xs font-heading font-bold text-gray-300 uppercase tracking-wider">
+                    Password
+                  </label>
                   {password.length > 0 && (
-                    <span className="text-[10px] font-medium text-gray-400">
+                    <span className="text-[10px] font-heading font-bold text-gray-400">
                       Strength:{" "}
                       <span
                         className={
                           passStrength <= 2
-                            ? "text-red-400 font-semibold"
+                            ? "text-red-400"
                             : passStrength <= 3
-                            ? "text-amber-400 font-semibold"
-                            : "text-emerald-400 font-semibold"
+                            ? "text-nvg-yellow"
+                            : "text-nvg-lime"
                         }
                       >
-                        {passStrength <= 2 ? "Weak" : passStrength <= 3 ? "Good" : "Strong"}
+                        {passStrength <= 2 ? "Weak" : passStrength <= 3 ? "Medium" : "Strong"}
                       </span>
                     </span>
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-dark-800/80 border border-white/10 rounded-xl py-2 pl-9 pr-9 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 text-xs transition-colors"
+                    className="w-full bg-nvg-off-black border border-white/10 rounded-2xl py-2.5 pl-10 pr-10 text-white placeholder-gray-500 focus:outline-none focus:border-nvg-lime text-xs transition-colors"
                     placeholder="At least 6 characters"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
                   >
-                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {/* Password strength bar */}
-                {password.length > 0 && (
-                  <div className="grid grid-cols-4 gap-1.5 mt-1.5">
-                    <div className={`h-1 rounded-full ${passStrength >= 1 ? "bg-red-500" : "bg-white/10"}`} />
-                    <div className={`h-1 rounded-full ${passStrength >= 2 ? "bg-amber-500" : "bg-white/10"}`} />
-                    <div className={`h-1 rounded-full ${passStrength >= 3 ? "bg-cyan-500" : "bg-white/10"}`} />
-                    <div className={`h-1 rounded-full ${passStrength >= 4 ? "bg-emerald-500" : "bg-white/10"}`} />
-                  </div>
-                )}
               </div>
 
-              {/* Target Role Selector */}
+              {/* Target Role */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Target Role / Specialization</label>
+                <label className="block text-xs font-heading font-bold text-gray-300 mb-1 uppercase tracking-wider">
+                  Target Role Track
+                </label>
                 <div className="relative">
-                  <Briefcase className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Briefcase className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <select
                     value={targetRole}
                     onChange={(e) => setTargetRole(e.target.value)}
-                    className="w-full bg-dark-800/80 border border-white/10 rounded-xl py-2 pl-9 pr-8 text-white focus:outline-none focus:border-brand-500 text-xs appearance-none transition-colors"
+                    className="w-full bg-nvg-off-black border border-white/10 rounded-2xl py-2.5 pl-10 pr-8 text-white focus:outline-none focus:border-nvg-lime text-xs appearance-none transition-colors"
                   >
                     {ROLE_OPTIONS.map((r) => (
-                      <option key={r} value={r} className="bg-dark-900 text-white">
+                      <option key={r} value={r} className="bg-nvg-off-black text-white">
                         {r}
                       </option>
                     ))}
                   </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
-                    ▼
-                  </div>
                 </div>
               </div>
 
-              {/* Experience Level Pills */}
+              {/* Experience Level */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-brand-400" />
-                  <span>Experience Level</span>
+                <label className="block text-xs font-heading font-bold text-gray-300 mb-1.5 uppercase tracking-wider">
+                  Seniority Level
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {EXPERIENCE_LEVELS.map((tier) => {
@@ -524,13 +504,13 @@ export default function RegisterPage() {
                         key={tier.id}
                         type="button"
                         onClick={() => setExperienceLevel(tier.id)}
-                        className={`p-2 rounded-xl text-left border transition-all ${
+                        className={`p-2.5 rounded-2xl text-left border transition-all ${
                           isSelected
-                            ? "bg-brand-500/20 border-brand-500/50 text-white shadow-sm shadow-brand-500/20"
-                            : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200"
+                            ? "bg-nvg-lime/20 border-nvg-lime text-white"
+                            : "bg-nvg-off-black/60 border-white/5 text-gray-400 hover:text-white"
                         }`}
                       >
-                        <div className="text-[11px] font-bold leading-tight">{tier.label.split(" ")[0]}</div>
+                        <div className="text-xs font-heading font-bold">{tier.label}</div>
                         <div className="text-[10px] text-gray-400 mt-0.5">{tier.desc}</div>
                       </button>
                     );
@@ -538,11 +518,10 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Target Companies (Chips) */}
+              {/* Target Companies */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Target Interview Companies</span>
+                <label className="block text-xs font-heading font-bold text-gray-300 mb-1.5 uppercase tracking-wider">
+                  Target Companies
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {TARGET_COMPANIES_LIST.map((comp) => {
@@ -552,10 +531,10 @@ export default function RegisterPage() {
                         key={comp}
                         type="button"
                         onClick={() => toggleCompany(comp)}
-                        className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                        className={`text-xs px-3 py-1 rounded-full border transition-all font-heading font-bold ${
                           active
-                            ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 font-semibold"
-                            : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-300"
+                            ? "bg-nvg-purple text-white border-nvg-purple"
+                            : "bg-nvg-off-black/60 border-white/10 text-gray-400 hover:text-white"
                         }`}
                       >
                         {active && "✓ "}
@@ -573,9 +552,9 @@ export default function RegisterPage() {
                   id="terms"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="rounded bg-dark-800 border-white/20 text-brand-600 focus:ring-brand-500 w-3.5 h-3.5 cursor-pointer"
+                  className="rounded bg-nvg-off-black border-white/20 text-nvg-lime focus:ring-nvg-lime w-4 h-4 cursor-pointer"
                 />
-                <label htmlFor="terms" className="text-[11px] text-gray-400 cursor-pointer">
+                <label htmlFor="terms" className="text-xs text-gray-400 cursor-pointer">
                   I agree to Preppr&apos;s Terms of Service and Privacy Policy.
                 </label>
               </div>
@@ -584,14 +563,14 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading || oauthLoading !== null}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 hover:from-brand-500 hover:to-cyan-500 text-white font-bold text-sm shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50"
+                className="w-full py-4 rounded-full bg-nvg-lime hover:brightness-105 !text-black font-heading font-extrabold text-sm shadow-neo-lime transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
               >
                 {loading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Create Account</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    <span className="text-black font-extrabold">Create Account</span>
+                    <ArrowRight className="w-4 h-4 text-black" />
                   </>
                 )}
               </button>
@@ -603,7 +582,7 @@ export default function RegisterPage() {
                 Already registered?{" "}
                 <Link
                   href="/login"
-                  className="font-semibold text-brand-400 hover:text-brand-300 underline underline-offset-4 decoration-brand-500/30 hover:decoration-brand-400 transition-colors"
+                  className="font-heading font-bold text-nvg-orange hover:underline transition-colors"
                 >
                   Sign in here
                 </Link>
@@ -611,7 +590,6 @@ export default function RegisterPage() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

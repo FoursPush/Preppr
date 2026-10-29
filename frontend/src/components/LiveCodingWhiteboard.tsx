@@ -230,7 +230,7 @@ export default function LiveCodingWhiteboard({
   const lineCount = code.split("\n").length;
 
   return (
-    <div className="flex flex-col h-full bg-dark-900/90 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl relative">
+    <div className="flex flex-col h-full bg-nvg-surface/90 border border-white/10 rounded-squircle overflow-hidden backdrop-blur-xl shadow-2xl relative font-body">
       {/* Top Problem & Language Bar */}
       <div className="p-3 bg-white/5 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
         {/* Dynamic LeetCode Challenge & Difficulty Controls */}
@@ -545,7 +545,7 @@ export default function LiveCodingWhiteboard({
               type="button"
               onClick={handleReviewCode}
               disabled={isSubmittingReview || !code.trim()}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-brand-500/20 flex items-center gap-2 transition-all disabled:opacity-50"
+              className="px-5 py-2.5 rounded-full bg-nvg-lime hover:brightness-105 !text-black text-xs font-heading font-extrabold shadow-neo-lime flex items-center gap-2 transition-all disabled:opacity-50"
             >
               <Sparkles className={`w-4 h-4 ${isSubmittingReview ? "animate-spin" : ""}`} />
               {isSubmittingReview ? "AI Analyzing Solution..." : "Submit Solution to Interviewer"}

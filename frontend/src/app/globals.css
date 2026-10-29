@@ -2,27 +2,144 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 11, 15, 25;
-  --background-end-rgb: 17, 24, 39;
+@layer base {
+  /* ==========================================================================
+     Local Font Faces: Neue Montreal v2 (Headings) & Neue Haas Grotesk (Body)
+     ========================================================================== */
+
+  /* Neue Montreal Bold v2 - Primary Heading Font */
+  @font-face {
+    font-family: 'Neue Montreal';
+    src: url('/fonts/neue-montreal-v2/ppneuemontreal-bold.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Neue Montreal';
+    src: url('/fonts/neue-montreal-v2/ppneuemontreal-bold.otf') format('opentype');
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Neue Montreal';
+    src: url('/fonts/neue-montreal-v2/ppneuemontreal-medium.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Neue Montreal';
+    src: url('/fonts/neue-montreal-v2/ppneuemontreal-book.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'PP Neue Montreal';
+    src: url('/fonts/neue-montreal-v2/ppneuemontreal-bold.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  /* Neue Haas Grotesk - Primary Body Font */
+  @font-face {
+    font-family: 'Neue Haas Grotesk';
+    src: url('/fonts/neue-haas-grotesk/neuehaasgrottext-55roman-trial.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Neue Haas Grotesk';
+    src: url('/fonts/neue-haas-grotesk/neuehaasgrottext-65medium-trial.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Neue Haas Grotesk';
+    src: url('/fonts/neue-haas-grotesk/neuehaasgrotdisp-75bold-trial.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --nvg-orange: #FF6F39;
+    --nvg-purple: #7A78FF;
+    --nvg-lime: #C7FF6A;
+    --nvg-offwhite: #FCFAEF;
+    --nvg-offblack: #141414;
+    --nvg-yellow: #FFC412;
+    --nvg-green: #00A653;
+    --nvg-lavender: #CBCCFE;
+    --nvg-lightblue: #BADDFD;
+    --nvg-canvas: #E8EBFF;
+  }
+
+  body {
+    background-color: #141414;
+    color: #FCFAEF;
+    font-family: "Neue Haas Grotesk", "Neue Haas Grotesk Text", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: "Neue Montreal", "PP Neue Montreal", "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+  }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  min-height: 100vh;
+/* Custom modern scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #141414;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a30;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3d3d45;
+}
+
+/* Animations */
+@keyframes slideUpWord {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.96);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.animate-slide-up-word {
+  animation: slideUpWord 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.02); }
+  50% { opacity: 0.9; transform: scale(1.02); }
 }
 
 .animate-pulse-subtle {
@@ -36,4 +153,34 @@ body {
 
 .animate-wave-bar {
   animation: wave 1.2s infinite ease-in-out;
+}
+
+/* Glass & squircle helper utilities */
+.squircle-card {
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.squircle-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+}
+
+.squircle-card-light {
+  border-radius: 28px;
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.squircle-card-light:hover {
+  border-color: rgba(20, 20, 20, 0.2);
+  transform: translateY(-2px);
+}
+
+.pill-nav {
+  background: rgba(20, 20, 20, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }

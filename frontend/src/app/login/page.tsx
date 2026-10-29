@@ -34,7 +34,7 @@ function LoginForm() {
     }
 
     if (isRegistered === "true") {
-      setRegistrationSuccessMsg("Account registered successfully in database! Please enter your credentials to sign in.");
+      setRegistrationSuccessMsg("Account registered successfully! Enter your credentials to sign in.");
     }
   }, [searchParams]);
 
@@ -64,7 +64,6 @@ function LoginForm() {
     setOauthLoading("google");
     setError("");
 
-    // Check if Google Identity Services GIS SDK is loaded
     if (typeof window !== "undefined" && (window as any).google?.accounts?.oauth2) {
       try {
         const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
@@ -97,7 +96,7 @@ function LoginForm() {
             console.error("Google Auth error:", err);
             setError("Google sign-in was cancelled or encountered an error.");
             setOauthLoading(null);
-          }
+          },
         });
 
         tokenClient.requestAccessToken();
@@ -107,7 +106,6 @@ function LoginForm() {
       }
     }
 
-    // Fallback direct sign in
     handleFallbackOAuth("google");
   };
 
@@ -128,7 +126,7 @@ function LoginForm() {
         role: res.role,
         avatar_url: res.avatar_url,
       });
-      
+
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || `Failed to sign in with ${provider}`);
@@ -138,41 +136,44 @@ function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md relative z-10">
-      <div className="p-8 rounded-3xl bg-dark-900/80 border border-white/10 backdrop-blur-2xl shadow-2xl relative">
+    <div className="w-full max-w-md relative z-10 font-body">
+      <div className="squircle-card p-8 sm:p-10 bg-nvg-surface/90 border border-white/10 backdrop-blur-2xl shadow-2xl relative">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/15 border border-brand-500/30 text-brand-300 text-xs font-medium mb-4">
-            <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-            <span>AI Interview Acceleration</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-nvg-lime !text-black text-xs font-heading font-extrabold uppercase tracking-wider mb-4 shadow-neo-lime">
+            <Sparkles className="w-3.5 h-3.5 text-black" />
+            <span>Candidate Portal</span>
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Sign In to Preppr</h2>
-          <p className="text-sm text-gray-400 mt-1.5">Access your personalized interview dashboard & analytics</p>
+          <h2 className="text-3xl font-heading font-extrabold text-white tracking-tight">
+            Sign In to <span className="text-nvg-orange">Preppr</span>.
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-400 mt-2 font-body">
+            Access your personalized interview dashboard & telemetry logs
+          </p>
         </div>
 
         {/* Registration Success Banner */}
         {registrationSuccessMsg && (
-          <div className="mb-6 p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs flex items-start gap-2.5 animate-fadeIn">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="mb-6 p-3.5 rounded-2xl bg-nvg-green/15 border border-nvg-green/40 text-white text-xs flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-nvg-green shrink-0 mt-0.5" />
             <p className="leading-relaxed">{registrationSuccessMsg}</p>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-            {error}
+          <div className="mb-6 p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+            <span>{error}</span>
           </div>
         )}
 
         {/* Social OAuth Buttons */}
         <div className="space-y-3 mb-6">
-          {/* Google Sign In */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading || oauthLoading !== null}
-            className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-medium text-sm transition-all duration-200 flex items-center justify-center gap-3 hover:border-white/30 hover:shadow-lg hover:shadow-white/5 group disabled:opacity-50 cursor-pointer"
+            className="w-full py-3.5 px-4 rounded-full bg-nvg-off-black border border-white/15 hover:border-white/30 text-white font-heading font-bold text-xs transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {oauthLoading === "google" ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -199,17 +200,16 @@ function LoginForm() {
             <span>Continue with Google</span>
           </button>
 
-          {/* GitHub Sign In */}
           <button
             type="button"
             onClick={() => handleFallbackOAuth("github")}
             disabled={loading || oauthLoading !== null}
-            className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-medium text-sm transition-all duration-200 flex items-center justify-center gap-3 hover:border-white/30 hover:shadow-lg hover:shadow-white/5 group disabled:opacity-50 cursor-pointer"
+            className="w-full py-3.5 px-4 rounded-full bg-nvg-off-black border border-white/15 hover:border-white/30 text-white font-heading font-bold text-xs transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {oauthLoading === "github" ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <Github className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+              <Github className="w-4 h-4 text-white" />
             )}
             <span>Continue with GitHub</span>
           </button>
@@ -218,7 +218,7 @@ function LoginForm() {
         {/* Divider */}
         <div className="relative flex items-center justify-center mb-6">
           <div className="border-t border-white/10 w-full" />
-          <span className="bg-dark-900 px-3 text-xs text-gray-500 uppercase tracking-wider font-semibold">
+          <span className="bg-nvg-surface px-3 text-[11px] text-gray-500 uppercase tracking-widest font-heading font-bold">
             Or with email
           </span>
           <div className="border-t border-white/10 w-full" />
@@ -227,30 +227,34 @@ function LoginForm() {
         {/* Standard Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Candidate Name</label>
+            <label className="block text-xs font-heading font-bold text-gray-300 mb-1.5 uppercase tracking-wider">
+              Candidate Name
+            </label>
             <div className="relative">
-              <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-dark-800/80 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 text-sm transition-colors"
+                className="w-full bg-nvg-off-black border border-white/10 rounded-2xl py-3 pl-11 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-nvg-lime text-xs transition-colors"
                 placeholder="Full Name"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Email Address</label>
+            <label className="block text-xs font-heading font-bold text-gray-300 mb-1.5 uppercase tracking-wider">
+              Email Address
+            </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-dark-800/80 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 text-sm transition-colors"
+                className="w-full bg-nvg-off-black border border-white/10 rounded-2xl py-3 pl-11 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-nvg-lime text-xs transition-colors"
                 placeholder="candidate@example.com"
               />
             </div>
@@ -258,22 +262,24 @@ function LoginForm() {
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-gray-300">Password</label>
-              <span className="text-[11px] text-brand-400 hover:text-brand-300 cursor-pointer">Forgot password?</span>
+              <label className="block text-xs font-heading font-bold text-gray-300 uppercase tracking-wider">
+                Password
+              </label>
+              <span className="text-[11px] text-nvg-orange hover:underline cursor-pointer">Forgot?</span>
             </div>
             <div className="relative">
-              <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-dark-800/80 border border-white/10 rounded-xl py-2.5 pl-10 pr-10 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 text-sm transition-colors"
+                className="w-full bg-nvg-off-black border border-white/10 rounded-2xl py-3 pl-11 pr-11 text-white placeholder-gray-500 focus:outline-none focus:border-white/30 text-xs transition-colors"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -283,14 +289,14 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading || oauthLoading !== null}
-            className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer"
+            className="w-full mt-2 py-4 rounded-full bg-nvg-lime hover:brightness-105 !text-black font-heading font-extrabold text-sm shadow-neo-lime transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
           >
             {loading ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
-                <span>Sign In to Dashboard</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                <span className="text-black font-extrabold">Sign In to Dashboard</span>
+                <ArrowRight className="w-4 h-4 text-black" />
               </>
             )}
           </button>
@@ -300,15 +306,18 @@ function LoginForm() {
         <div className="mt-6 pt-5 border-t border-white/10 text-center">
           <p className="text-xs text-gray-400">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-semibold text-brand-400 hover:text-brand-300 underline underline-offset-4 decoration-brand-500/30 hover:decoration-brand-400 transition-colors">
+            <Link
+              href="/register"
+              className="font-heading font-bold text-nvg-orange hover:underline transition-colors"
+            >
               Create new account
             </Link>
           </p>
         </div>
 
         <div className="mt-4 text-center">
-          <p className="text-[11px] text-gray-500 flex items-center justify-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-emerald-400" /> 256-bit Encrypted • PostgreSQL Database Persistence
+          <p className="text-[10px] text-gray-500 flex items-center justify-center gap-1.5 uppercase tracking-wider font-heading">
+            <Shield className="w-3.5 h-3.5 text-nvg-yellow" /> PostgreSQL Encrypted Auth
           </p>
         </div>
       </div>
@@ -318,10 +327,10 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-nvg-off-black flex items-center justify-center px-4 pt-32 sm:pt-36 pb-20 relative overflow-hidden">
       {/* Background ambient glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-nvg-orange/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-72 h-72 bg-nvg-purple/10 rounded-full blur-3xl pointer-events-none" />
 
       <Suspense fallback={<div className="text-gray-400 text-xs">Loading login form...</div>}>
         <LoginForm />
